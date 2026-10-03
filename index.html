@@ -188,7 +188,7 @@ textarea{min-height:150px;font-family:ui-monospace,Menlo,monospace;font-size:12.
 .opt{border:1.5px solid var(--line);background:var(--card);border-radius:14px;padding:14px;text-align:left;font-size:16px}
 .opt.right{border-color:var(--ink);background:color-mix(in srgb,var(--ink) 9%,var(--card))}
 .opt.wrong{border:1.5px dashed var(--sub);background:transparent;color:var(--sub);text-decoration:line-through}
-.blank{display:inline-block;min-width:70px;border-bottom:3px solid var(--c);color:transparent}
+.blank{display:inline-block;min-width:70px;border-bottom:3px solid var(--sub);color:transparent}
 .fb{margin-top:16px;padding:14px;border-radius:14px}
 .fb.ok{background:color-mix(in srgb,var(--ink) 8%,transparent)}
 .fb.no{background:transparent;border:1.5px dashed var(--sub)}
@@ -319,6 +319,7 @@ const SEED=[
 const SAMPLE_IMPORT=[
  {lang:'en',word:'come up with',reading:'',pos:'ph_v',meaning:'(아이디어·해결책을) 떠올리다',pattern:'come up with + 명사',sep:'분리 불가',core:'with',examples:[{t:'She [[came up with]] a brilliant idea.',tr:'그녀는 기발한 아이디어를 떠올렸다.'},{t:'Can you [[come up with]] a better name?',tr:'더 좋은 이름을 생각해 낼 수 있어?'},{t:'We need to [[come up with]] a plan.',tr:'우리는 계획을 세워야 한다.'}],collocations:[],synonyms:['think of','devise'],mnemonic:'',note:'with를 빼먹기 쉬움',source:'Economist 2024.11 · p.3'},
  {lang:'en',word:'deteriorate',reading:'/dɪˈtɪriəreɪt/',pos:'v_ti',meaning:'악화되다 / 악화시키다',examples:[{t:'His health began to [[deteriorate]].',tr:'그의 건강이 악화되기 시작했다.'},{t:'Stress can [[deteriorate]] your focus.',tr:'스트레스는 집중력을 떨어뜨릴 수 있다.'},{t:'The weather [[deteriorated]] overnight.',tr:'날씨가 밤새 나빠졌다.'}],collocations:['deteriorate rapidly'],synonyms:['worsen','decline'],note:'주로 자동사로 사용',source:'Economist 2024.11 · p.3'},
+ {lang:'en',word:'habit',reading:'/ˈhæbɪt/',pos:'n_c',meaning:'습관',examples:[{t:'Reading before bed is a good [[habit]].',tr:'자기 전에 책을 읽는 건 좋은 [[습관]]이다.'},{t:'He is trying to break the [[habit]] of snacking.',tr:'그는 간식 먹는 [[습관]]을 끊으려 하고 있다.'},{t:'It took me a month to form the [[habit]].',tr:'그 [[습관]]을 들이는 데 한 달이 걸렸다.'},{t:'Small daily [[habits]] can change your life.',tr:'작은 일상 [[습관]]들이 인생을 바꿀 수 있다.'},{t:'Good [[habits]] are hard to build but easy to lose.',tr:'좋은 [[습관]]은 만들기는 어렵고 잃기는 쉽다.'}],collocations:['form a habit','break a habit','a bad habit'],synonyms:['routine'],note:'복수형 habits (가산명사 → 복수형 예문 포함)',source:'Economist 2024.11 · p.3'},
  {lang:'en',word:'luggage',reading:'/ˈlʌɡɪdʒ/',pos:'n_u',meaning:'수하물, 짐',examples:[{t:'I lost my [[luggage]] at the airport.',tr:'공항에서 짐을 잃어버렸다.'},{t:'How much [[luggage]] do you have?',tr:'짐이 얼마나 있나요?'},{t:'She packed two pieces of [[luggage]].',tr:'그녀는 짐 두 개를 쌌다.'}],collocations:['a piece of luggage','carry-on luggage'],synonyms:['baggage'],note:'✕ luggages',source:'Economist 2024.11 · p.3'},
  {lang:'en',word:'advice',reading:'/ədˈvaɪs/',pos:'n_u',meaning:'조언',examples:[{t:'Take my [[advice]].',tr:'내 조언을 받아들여.'}],collocations:[],synonyms:[],note:'',source:'Economist 2024.11 · p.3'},
  {lang:'ja',word:'遅れる',reading:'おくれる',pos:'ja_v2',meaning:'늦다, 지각하다',examples:[{t:'電車が[[遅れて]]いる。',tr:'전철이 늦어지고 있다.'},{t:'会議に[[遅れ]]ました。',tr:'회의에 늦었습니다.'},{t:'[[遅れない]]ように出かけた。',tr:'늦지 않도록 나갔다.'}],collocations:['時間に遅れる','電車が遅れる'],synonyms:[],note:'に + 遅れる (시간/약속에 늦다)',source:'일본어 N4 교재 · p.70'}
@@ -338,6 +339,10 @@ const PROMPT=`너는 영어/일본어 단어장 카드 생성기야.
 - examples: 3개. 서로 다른 상황·문형으로 쓸 것 (같은 문장에서 단어만 바꾸지 말 것).
   가능하면 대표 콜로케이션을 하나 이상 포함하고, 예문 속 나머지 단어는 쉬운 것으로.
   해당 단어(활용형 포함)는 [[ ]]로 감싸고, tr은 한국어 번역(번역문에서 그 단어에 해당하는 부분도 [[ ]]로 감쌀 것)
+- 가산명사(n_c)는 위 3개에 더해 "복수형"으로 쓴 예문을 1~2개 추가해서 examples를 4~5개로 만들 것.
+  · 추가 예문은 [[decisions]]처럼 복수형을 [[ ]]로 감싸고, 복수형 주어면 동사도 복수 일치(Habits are ...)
+  · 철자가 바뀌거나 불규칙한 복수형(city→cities, child→children)은 note에 적어 둘 것
+  · 불가산명사·동사·형용사 등 가산명사가 아닌 카드는 3개 그대로
 - collocations: 자주 같이 쓰는 표현 2~3개
 - mnemonic: 왜 그런 뜻·형태가 되었는지 이유를 한 줄로 (어원 분해, 전치사의 핵심 이미지 등. 예: on behalf of = 남의 편(behalf) 위에 올라타 대신 선다). 억지로 지어낸 설명이면 빈 문자열
 - note: 문법 주의점. 필기로 적어 둔 메모가 있으면 여기에 반영
@@ -557,6 +562,7 @@ function vLibrary(){
       <select id="psel" style="position:absolute;inset:0;opacity:0;width:100%;height:100%;padding:0;border:0"><option value="all">전체</option><option value="k:word" ${f.pos==='k:word'?'selected':''}>단어만</option><option value="k:phrase" ${f.pos==='k:phrase'?'selected':''}>표현(구·숙어)만</option>${typesOf(f.lang).map(([k,t])=>`<option value="${k}" ${f.pos===k?'selected':''}>${t.label}</option>`).join('')}</select></label>
     <button class="ibtn ${f.view&&f.view!=='all'?'on':''}" id="vtog" aria-label="보기 방식" style="font-weight:800;font-size:15px">${f.view==='en'?(f.lang==='ja'?'あ':'A'):f.view==='ko'?'가':'A가'}</button></div>
   ${words.some(w=>w.incomplete&&w.lang===f.lang)?`<div class="note" style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b style="flex:1;min-width:140px">🧩 보강 필요 ${words.filter(w=>w.incomplete&&w.lang===f.lang).length}개</b><button class="btn sm" id="lenr">지시문 복사</button><button class="btn sm ghost" id="limp">붙여 넣기 →</button></div>`:''}
+  ${f.lang==='en'&&words.some(needPlural)?`<div class="note" style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b style="flex:1;min-width:140px">🔢 복수형 예문 보강 가능 ${words.filter(needPlural).length}개</b><button class="btn sm" id="lpl">지시문 복사</button><button class="btn sm ghost" id="lpi">붙여 넣기 →</button></div>`:''}
   <input type="search" id="q" placeholder="단어·뜻 검색" value="${esc(f.q)}" style="margin-top:10px;${f.q||f.sopen?'':'display:none'}">
   <div class="list" id="lst"></div>`;
   const rank=f.rank||(f.rank=new Map(shuffle(words.map(w=>w.id)).map((id,i)=>[id,i])));   /* 열 때마다 순서 섞기 (검색 중에는 유지) */
@@ -569,6 +575,7 @@ function vLibrary(){
   };
   draw();
   $('#lenr')&&($('#lenr').onclick=()=>copyEnrich(words.filter(w=>w.incomplete&&w.lang===f.lang)));$('#limp')&&($('#limp').onclick=()=>go('import'));
+  $('#lpl')&&($('#lpl').onclick=()=>copyPlural(words.filter(needPlural)));$('#lpi')&&($('#lpi').onclick=()=>go('import'));
   $('#stog').onclick=()=>{f.sopen=!f.sopen;const q=$('#q');q.style.display=f.sopen||f.q?'':'none';if(f.sopen)q.focus()};
   $('#psel').onchange=e=>{f.pos=e.target.value;vLibrary()};
   $('#vtog').onclick=()=>{const o=['all','en','ko'];f.view=o[(o.indexOf(f.view||'all')+1)%3];toast(f.view==='all'?'영어 + 뜻':f.view==='en'?LANG[f.lang]+'만 보기':'한글만 보기');vLibrary()};
@@ -577,6 +584,20 @@ function vLibrary(){
 
 /* ---------- 미완성 카드 보강 지시문 ---------- */
 const enrichText=list=>PROMPT+'\n\n이번에는 이미지 없이, 아래 단어/표현만 카드로 만들어 줘 (적힌 뜻이 있으면 meaning에 반영):\n'+list.map(w=>'- '+w.word+(w.meaning&&!w.meaning.startsWith('(')?' | '+w.meaning:'')).join('\n');
+/* 기존 가산명사 카드에 복수형 예문만 덧붙이기 */
+const needPlural=w=>w.lang==='en'&&w.pos==='n_c'&&!w.incomplete&&w.examples.length<4;
+const newEx=(old,p)=>(p.examples||[]).filter(x=>!old.examples.some(y=>y.t===x.t));
+const pluralText=list=>`아래 영어 가산명사들에 "복수형"으로 쓴 예문을 단어마다 1~2개씩 새로 만들어 줘.
+- 복수형은 [[decisions]]처럼 [[ ]]로 감싸고, tr은 한국어 번역(번역문에서 해당 부분도 [[ ]]로 감쌀 것)
+- 복수형 주어면 동사도 복수 일치(Habits are ...). 기존 예문과 다른 상황·문형으로 쓸 것
+- 철자가 바뀌거나 불규칙한 복수형(city→cities, child→children)은 note에 적을 것
+- 설명 없이 JSON 배열로만 출력. examples에는 "새로 만든 복수형 예문만" 넣을 것 (기존 예문은 넣지 않음)
+
+[{"lang":"en","word":"","pos":"n_c","meaning":"","examples":[{"t":"","tr":""}],"note":""}]
+
+대상 단어:
+`+list.map(w=>'- '+w.word+' | '+w.meaning+(w.examples[0]?' | 기존 예문: '+w.examples[0].t.replace(/\[\[|\]\]/g,''):'')).join('\n');
+const copyPlural=list=>navigator.clipboard?.writeText(pluralText(list)).then(()=>toast(`${list.length}개 복수형 예문 지시문을 복사했어요 → AI에 붙여 넣고, 결과는 가져오기에 붙여 넣으세요`),()=>toast('복사 실패'));
 const copyEnrich=list=>navigator.clipboard?.writeText(enrichText(list)).then(()=>toast(`${list.length}개 보강 지시문을 복사했어요 → AI에 붙여 넣고, 결과는 가져오기에 붙여 넣으세요`),()=>toast('복사 실패'));
 
 /* ---------- 카드 상세 ---------- */
@@ -660,11 +681,11 @@ function vImport(){
       <div class="row"><button class="btn" id="pv">미리보기</button><button class="btn ghost" id="sm">JSON 샘플</button><button class="btn ghost" id="sm2">TXT 샘플</button></div>
       ${s.err?`<div class="err">⚠️ ${esc(s.err)}</div>`:''}</div>
     ${s.items?`<div class="step"><h3>저장할 단어 고르기</h3>
-      ${s.items.map((w,i)=>{const ex0=words.find(x=>x.word.toLowerCase()===w.word.toLowerCase()&&x.lang===w.lang&&(x.incomplete||x.pos===w.pos));const fill=ex0&&ex0.incomplete&&!w.incomplete;const dup=ex0&&!fill;return `<label class="pv ${dup?'dup':''}" style="--c:${col(w)}">
+      ${s.items.map((w,i)=>{const ex0=words.find(x=>x.word.toLowerCase()===w.word.toLowerCase()&&x.lang===w.lang&&(x.incomplete||x.pos===w.pos));const fill=ex0&&ex0.incomplete&&!w.incomplete;const add=ex0&&!ex0.incomplete&&ex0.pos==='n_c'&&w.pos==='n_c'&&newEx(ex0,w).length>0;const dup=ex0&&!fill&&!add;return `<label class="pv ${dup?'dup':''}" style="--c:${col(w)}">
         <input type="checkbox" data-i="${i}" ${dup?'disabled':'checked'}>
         <div style="flex:1"><div><b style="color:${col(w)};font-size:18px">${esc(w.word)}</b> <span class="muted">${esc(w.reading)}</span></div>
-        <div>${esc(w.meaning)}</div><div style="margin-top:4px">${chipOf(w)} ${dup?'<span class="chip gray">이미 있음 · 건너뜀</span>':fill?'<span class="chip" style="--c:var(--ink)">미완성 카드 채우기</span>':w.incomplete?'<span class="chip" style="--c:var(--ink)">🧩 뜻만 저장 · 나중에 보강</span>':'<span class="chip" style="--c:var(--ink)">새 단어</span>'}</div>
-        ${w.examples[0]?`<div class="muted" style="margin-top:6px">${hl(w.examples[0].t)}</div>`:''}</div></label>`}).join('')}
+        <div>${esc(w.meaning)}</div><div style="margin-top:4px">${chipOf(w)} ${w.pos==='n_c'&&!w.incomplete&&w.examples.length<4?'<span class="chip gray">복수형 예문 없음</span> ':''}${dup?'<span class="chip gray">이미 있음 · 건너뜀</span>':add?`<span class="chip" style="--c:var(--ink)">기존 카드에 예문 ${newEx(ex0,w).length}개 추가</span>`:fill?'<span class="chip" style="--c:var(--ink)">미완성 카드 채우기</span>':w.incomplete?'<span class="chip" style="--c:var(--ink)">🧩 뜻만 저장 · 나중에 보강</span>':'<span class="chip" style="--c:var(--ink)">새 단어</span>'}</div>
+        ${(add?newEx(ex0,w)[0]:w.examples[0])?`<div class="muted" style="margin-top:6px">${hl((add?newEx(ex0,w)[0]:w.examples[0]).t)}</div>`:''}</div></label>`}).join('')}
       <button class="btn block" id="sv">선택한 단어 저장</button></div>`:''}
   </div>`;
   $('#cp').onclick=()=>{navigator.clipboard?.writeText(PROMPT).then(()=>toast('복사했어요'),()=>toast('복사 실패 — 직접 선택해서 복사해 주세요'))};
@@ -678,7 +699,8 @@ function vImport(){
     let id=Math.max(0,...words.map(w=>w.id));
     picks.forEach(p=>{
       const ex0=words.find(x=>x.word.toLowerCase()===p.word.toLowerCase()&&x.lang===p.lang&&(x.incomplete||x.pos===p.pos));
-      if(ex0&&ex0.incomplete&&!p.incomplete)Object.assign(ex0,p,{incomplete:false});
+      if(ex0&&!ex0.incomplete&&ex0.pos==='n_c'&&p.pos==='n_c'&&newEx(ex0,p).length){ex0.examples.push(...newEx(ex0,p));if(p.note&&!(ex0.note||'').includes(p.note))ex0.note=ex0.note?ex0.note+' · '+p.note:p.note}
+      else if(ex0&&ex0.incomplete&&!p.incomplete)Object.assign(ex0,p,{incomplete:false});
       else words.push({...p,id:++id,due:0,reps:0,lapses:0,reviews:0,mine:[],ivl:0,hardCount:0,dueAt:addDays(0)});
     });
     save();importState={text:'',items:null,err:''};toast(`${picks.length}개 저장했어요`);go('library');
