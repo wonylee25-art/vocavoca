@@ -657,37 +657,42 @@ function vImport(){
   <h1>단어 가져오기</h1><div class="muted">책·PDF는 Claude/Gemini가 읽고, 결과만 여기 붙여넣어요.</div>
   ${inc.length?`<div class="card" style="margin-top:16px;border-color:var(--ink)"><b>🧩 보강이 필요한 단어 ${inc.length}개</b><div class="muted" style="margin:4px 0 8px">${inc.slice(0,6).map(w=>esc(w.word)).join(', ')}${inc.length>6?' …':''}</div><button class="btn sm" id="enr">보강용 지시문 복사 (AI에 붙여 넣기)</button> <span class="muted" style="font-size:12.5px">→ 받은 결과를 아래 2단계에 붙여 넣으면 카드가 채워져요</span></div>`:''}
   <div class="steps" style="margin-top:20px">
+    <div class="step"><h3>⚡ 몇 개만 빠르게 추가</h3>
+      <div class="muted" style="margin-bottom:8px">단어를 쉼표나 줄바꿈으로 적고 복사 → Claude/Gemini에 붙여넣기 → 받은 결과를 아래 2단계에 붙여넣기. 뜻을 직접 정하고 싶으면 <code>rack | 선반</code>처럼 적으세요. 품사·예문·콜로케이션은 AI가 채워요.</div>
+      <textarea id="qk" style="min-height:70px;font-family:inherit;font-size:15px" placeholder="bend over, rack, ramp, podium">${esc(s.quick||'')}</textarea>
+      <div class="row"><button class="btn sm" id="qcp">📋 단어 포함 지시문 복사</button></div></div>
     <div class="step"><h3>(사진·PDF) 외부 AI에 지시문 + 이미지 보내기</h3>
       <pre>${esc(PROMPT)}</pre>
       <button class="btn sm" id="cp">📋 지시문 복사</button></div>
     <div class="step"><h3>AI 결과(JSON) 또는 단어 목록(TXT)을 붙여넣기</h3><div class="muted" style="margin-bottom:8px">TXT는 한 줄에 하나: <code>단어</code> 또는 <code>단어 - 뜻</code> / <code>단어 | 뜻</code>. 영어·일본어는 자동으로 구분해요.</div>
       <textarea id="tx" placeholder='[ {"lang":"en","word":"...", ...} ]'>${esc(s.text)}</textarea>
-      <div class="row"><button class="btn" id="pv">미리보기</button><button class="btn ghost" id="sm">JSON 샘플</button><button class="btn ghost" id="sm2">TXT 샘플</button></div>
+      <div class="row"><button class="btn" id="pv">저장</button><button class="btn ghost" id="sm">JSON 샘플</button><button class="btn ghost" id="sm2">TXT 샘플</button></div>
       ${s.err?`<div class="err">⚠️ ${esc(s.err)}</div>`:''}</div>
-    ${s.items?`<div class="step"><h3>저장할 단어 고르기</h3>
-      ${s.items.map((w,i)=>{const ex0=words.find(x=>x.word.toLowerCase()===w.word.toLowerCase()&&x.lang===w.lang&&(x.incomplete||x.pos===w.pos));const fill=ex0&&ex0.incomplete&&!w.incomplete;const dup=ex0&&!fill;return `<label class="pv ${dup?'dup':''}" style="--c:${col(w)}">
-        <input type="checkbox" data-i="${i}" ${dup?'disabled':'checked'}>
-        <div style="flex:1"><div><b style="color:${col(w)};font-size:18px">${esc(w.word)}</b> <span class="muted">${esc(w.reading)}</span></div>
-        <div>${esc(w.meaning)}</div><div style="margin-top:4px">${chipOf(w)} ${w.pos==='n_c'&&!w.incomplete&&w.examples.length<4?'<span class="chip gray">복수형 예문 없음</span> ':''}${dup?'<span class="chip gray">이미 있음 · 건너뜀</span>':fill?'<span class="chip" style="--c:var(--ink)">미완성 카드 채우기</span>':w.incomplete?'<span class="chip" style="--c:var(--ink)">🧩 뜻만 저장 · 나중에 보강</span>':'<span class="chip" style="--c:var(--ink)">새 단어</span>'}</div>
-        ${w.examples[0]?`<div class="muted" style="margin-top:6px">${hl(w.examples[0].t)}</div>`:''}</div></label>`}).join('')}
-      <button class="btn block" id="sv">선택한 단어 저장</button></div>`:''}
   </div>`;
+  const qk=$('#qk');qk.oninput=()=>s.quick=qk.value;
+  $('#qcp').onclick=()=>{
+    const list=qk.value.split(/[\n,，、]+/).map(x=>x.trim()).filter(Boolean).map(x=>{const m=x.split(/\s*(?:\||\s[-–—]\s|:|=)\s*/);return {word:m[0],meaning:m[1]||''}});
+    if(!list.length){toast('단어를 먼저 적어 주세요');return}
+    navigator.clipboard?.writeText(enrichText(list)).then(()=>toast(`${list.length}개 지시문을 복사했어요 → AI에 붙여 넣고, 결과는 아래 2단계에 붙여 넣으세요`),()=>toast('복사 실패'));
+  };
   $('#cp').onclick=()=>{navigator.clipboard?.writeText(PROMPT).then(()=>toast('복사했어요'),()=>toast('복사 실패 — 직접 선택해서 복사해 주세요'))};
   const tx=$('#tx');tx.oninput=()=>s.text=tx.value;
   $('#enr')&&($('#enr').onclick=()=>copyEnrich(inc));
   $('#sm2').onclick=()=>{s.text=SAMPLE_TXT;s.err='';vImport()};
   $('#sm').onclick=()=>{s.text=JSON.stringify(SAMPLE_IMPORT,null,1);s.err='';vImport()};
-  $('#pv').onclick=()=>{s.text=tx.value;try{s.items=parseImport(s.text);s.err=''}catch(e){s.items=null;s.err='JSON을 읽을 수 없어요: '+e.message}vImport()};
-  $('#sv')&&($('#sv').onclick=()=>{
-    const picks=[...document.querySelectorAll('.pv input:checked')].map(c=>s.items[+c.dataset.i]);
-    let id=Math.max(0,...words.map(w=>w.id));
-    picks.forEach(p=>{
+  $('#pv').onclick=()=>{
+    s.text=tx.value;let items;
+    try{items=parseImport(s.text)}catch(e){s.err='JSON을 읽을 수 없어요: '+e.message;vImport();return}
+    let id=Math.max(0,...words.map(w=>w.id)),n=0,skip=0;
+    items.forEach(p=>{
       const ex0=words.find(x=>x.word.toLowerCase()===p.word.toLowerCase()&&x.lang===p.lang&&(x.incomplete||x.pos===p.pos));
-      if(ex0&&ex0.incomplete&&!p.incomplete)Object.assign(ex0,p,{incomplete:false});
-      else words.push({...p,id:++id,due:0,reps:0,lapses:0,reviews:0,mine:[],ivl:0,hardCount:0,dueAt:addDays(0)});
+      if(ex0&&ex0.incomplete&&!p.incomplete){Object.assign(ex0,p,{incomplete:false});n++}
+      else if(ex0){skip++}
+      else{words.push({...p,id:++id,due:0,reps:0,lapses:0,reviews:0,mine:[],ivl:0,hardCount:0,dueAt:addDays(0)});n++}
     });
-    save();importState={text:'',items:null,err:''};toast(`${picks.length}개 저장했어요`);go('library');
-  });
+    save();importState={text:'',items:null,err:'',quick:''};
+    toast(`${n}개 저장했어요`+(skip?` (이미 있는 ${skip}개는 건너뜀)`:''));go('library');
+  };
 }
 
 /* ---------- 테스트 진행 ---------- */
