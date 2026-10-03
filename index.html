@@ -424,7 +424,7 @@ function streak(){let d=new Date(),c=0;if(!(log[dkey(d)]?.n))d.setDate(d.getDate
 const chipOf=w=>`<span class="chip solid" style="--c:${col(w)};--on:${TYPES[w.pos]?.on||'#fff'}">${label(w)}</span>`;
 
 /* ---------- 라우팅 ---------- */
-function go(r){if(r.startsWith('test-')){tl=r.slice(5);r='home'}if(r==='home'){if(sess&&sess.lang===tl&&sess.i<sess.queue.length)r='review';else if(words.some(w=>!w.incomplete&&w.lang===tl)){startReview(tl);return}}if(r==='library')r='lib-'+filter.lang;if(r.startsWith('lib-')){filter.lang=r.slice(4);filter.pos='all';filter.rank=null;r='library'}route=r;const tab=r==='card'?'lib-'+filter.lang:r==='review'||r==='home'?'test-'+tl:r==='library'?'lib-'+filter.lang:r==='stats'?'':r;document.querySelectorAll('.nav [data-go]').forEach(b=>b.classList.toggle('on',b.dataset.go===tab));render();scrollTo(0,0)}
+function go(r){if(r.startsWith('test-')){tl=r.slice(5);r='home'}try{if(/^(test-|lib-)/.test(arguments[0])||/^(import|settings)$/.test(r))localStorage.setItem('voca-tab',arguments[0])}catch(e){}if(r==='home'){if(sess&&sess.lang===tl&&sess.i<sess.queue.length)r='review';else if(words.some(w=>!w.incomplete&&w.lang===tl)){startReview(tl);return}}if(r==='library')r='lib-'+filter.lang;if(r.startsWith('lib-')){filter.lang=r.slice(4);filter.pos='all';filter.rank=null;r='library'}route=r;const tab=r==='card'?'lib-'+filter.lang:r==='review'||r==='home'?'test-'+tl:r==='library'?'lib-'+filter.lang:r==='stats'?'':r;document.querySelectorAll('.nav [data-go]').forEach(b=>b.classList.toggle('on',b.dataset.go===tab));render();scrollTo(0,0)}
 document.querySelectorAll('.nav [data-go]').forEach(b=>b.onclick=()=>{go(b.dataset.go)});
 function render(){$('#view').dataset.r=route;({card:vCard,home:vHome,library:vLibrary,import:vImport,stats:vStats,settings:vSettings,review:vReview})[route]();if(route!=='card')$('#view').insertAdjacentHTML('afterbegin','<div class="wm toplogo">Voca<b>Voca</b></div>')}
 
@@ -824,7 +824,7 @@ function next(){
   pickMode();render();scrollTo(0,0)}
 
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});
-go('test-en');
+go((()=>{try{const t=localStorage.getItem('voca-tab');return /^(test-|lib-)(en|ja)$|^(import|settings)$/.test(t)?t:'lib-en'}catch(e){return 'lib-en'}})());
 </script>
 </body>
 </html>
