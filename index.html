@@ -531,6 +531,7 @@ function vSettings(){
     <div class="row"><button class="btn sm ghost" data-t="en">▶ 미리듣기</button></div>
     <div class="muted" style="margin:16px 0 6px">일본어 음성</div>${sel('ja','voiceJa')}
     <div class="row"><button class="btn sm ghost" data-t="ja">▶ 미리듣기</button></div>
+    <label style="display:flex;gap:8px;align-items:center;margin-top:16px"><input type="checkbox" id="ap" ${cfg.autoplay?'checked':''}> 테스트에서 단어 자동 재생</label>
     <div class="muted" style="margin:16px 0 6px">속도 <b id="rv">${cfg.rate}</b></div>
     <input type="range" id="rate" min="0.5" max="1.1" step="0.05" value="${cfg.rate}" style="width:100%">
     <div class="muted" style="margin-top:12px;font-size:12.5px">★은 자연스러운 음성으로 알려진 것들이에요. 어색하면 다른 음성을 골라 미리듣기로 비교하거나, 카드의 '🔊 네이버 사전' 링크를 쓰세요. 음성 목록은 기기·브라우저마다 달라요.</div>
@@ -544,6 +545,7 @@ function vSettings(){
   <div class="muted" style="margin-top:18px;text-align:center">Voca 1.0 · 단어 ${words.length}개</div>`;
   document.querySelectorAll('[data-v]').forEach(e=>e.onchange=()=>{cfg[e.dataset.v]=e.value;saveCfg();say(e.dataset.v==='voiceJa'?'こんにちは':'Hello, nice to meet you.',e.dataset.v==='voiceJa'?'ja':'en',true);vSettings()});
   document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>b.dataset.t==='ja'?say('こんにちは、元気ですか？','ja',true):say('Hello, how are you today?','en',true));
+  $('#ap').onchange=e=>{cfg.autoplay=e.target.checked;saveCfg()};
   $('#rate').oninput=e=>{cfg.rate=+e.target.value;saveCfg();$('#rv').textContent=cfg.rate};
   $('#gst').onclick=()=>go('stats');
   $('#exp').onclick=exportData;$('#imp').onclick=()=>$('#impf').click();
@@ -734,9 +736,9 @@ const targets=(w,mode)=>mode==='listen'?[w.word]:mode==='cloze'?[ans(w,sess.exi)
 function partText(w){const p=w.word.split(' '),k=p.map(x=>x.toLowerCase()).lastIndexOf(w.core.toLowerCase());if(k>=0)p[k]='＿＿＿';return p.join(' ')}
 function reveal(w){
   const ex=w.examples[sess.exi]||w.examples[0];
-  return `<div style="margin-top:8px"><span style="color:${col(w)};font-weight:800;font-size:20px">${esc(w.word)}</span>
+  return `<div style="margin-top:8px"><span style="color:${col(w)};font-weight:800;font-size:20px">${esc(w.word)}</span> <button class="ibtn" data-say="w" aria-label="단어 듣기" style="vertical-align:middle"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg></button>
     ${['listen','flip'].includes(sess.mode)?`<div style="margin-top:4px;font-weight:600">${esc(w.meaning)}</div>`:''}
-    ${ex?`<div class="ex" style="margin-top:8px;--c:${col(w)}"><p>${hl(ex.t)}</p><p class="tr">${hl(ex.tr||'')}</p></div>`:''}
+    ${ex?`<div class="ex" style="margin-top:8px;--c:${col(w)}"><p>${hl(ex.t)} <button class="ibtn" data-say="s" aria-label="예문 듣기" style="vertical-align:middle"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg></button></p><p class="tr">${hl(ex.tr||'')}</p></div>`:''}
     ${w.note?`<div class="muted" style="margin-top:4px">💡 ${esc(w.note)}</div>`:''}
     ${w.mnemonic?`<div class="muted" style="margin-top:4px">💡 ${esc(w.mnemonic)}</div>`:''}</div>`;
 }
@@ -795,6 +797,9 @@ function bindReview(w){
   const mode=sess.mode;
   $('#stop').onclick=()=>{sess=null;go('lib-'+tl)};
   $('#pl')&&($('#pl').onclick=()=>speak(w));
+  document.querySelectorAll('[data-say]').forEach(b=>b.onclick=()=>{const ex=w.examples[sess.exi]||w.examples[0];say(b.dataset.say==='s'&&ex?ex.t.replace(/\[\[(.+?)\]\]/g,'$1'):w.word,w.lang)});
+  const showsWord=['choice','flip','produce'].includes(mode),key=sess.n+':'+sess.state;
+  if(cfg.autoplay&&sess.apKey!==key&&(sess.state==='fb'?!showsWord:showsWord)){sess.apKey=key;speak(w)}
   document.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
     const o=sess.opts[+b.dataset.o];sess.picked=o;
     answer(w,o===sess.correct);
