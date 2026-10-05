@@ -608,7 +608,7 @@ function vLibrary(){
     const L=words.filter(w=>w.lang===f.lang&&(f.pos==='all'||(f.pos==='k:word'?!isPhrase(w):f.pos==='k:phrase'?isPhrase(w):w.pos===f.pos))&&(!f.q||(w.word+w.meaning+w.reading).toLowerCase().includes(f.q.toLowerCase()))).sort((a,b)=>rank.get(a.id)-rank.get(b.id));
     $('#lst').innerHTML=L.length?L.map(w=>`<button class="w" data-id="${w.id}" style="--c:${col(w)}">
       <div class="line">${f.view==='ko'?'':`<span class="t">${esc(w.word)}</span>`}${f.view==='en'?'':`<span class="m" ${f.view==='ko'?'style="font-size:18px;font-weight:700"':''}>${esc(w.meaning)}</span>`}</div>
-      <div class="side">${chipOf(w)}${w.incomplete?'<span class="hot" style="color:var(--ink)">🧩 보강 필요</span>':isWeak(w)?'<span class="hot">🔥 취약</span>':`<span class="muted" style="font-size:12px">${dueIn(w.due)}</span>`}</div></button>`).join(''):'<div class="empty">조건에 맞는 단어가 없어요</div>';
+      <div class="side">${chipOf(w)}${w.incomplete?'<span class="hot" style="color:var(--ink)">🧩 보강 필요</span>':isWeak(w)?'<span class="hot">🔥 취약</span>':''}</div></button>`).join(''):'<div class="empty">조건에 맞는 단어가 없어요</div>';
     document.querySelectorAll('.w').forEach(b=>b.onclick=()=>openSheet(+b.dataset.id,L.map(w=>w.id),'library'));
   };
   draw();
