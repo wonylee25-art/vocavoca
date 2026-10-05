@@ -197,6 +197,14 @@ textarea{min-height:150px;font-family:ui-monospace,Menlo,monospace;font-size:12.
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#1b1f2a;color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;z-index:60;opacity:0;pointer-events:none;transition:opacity .2s}
 .toast.show{opacity:1}
 .tag-demo{display:inline-block;font-size:11px;font-weight:700;background:color-mix(in srgb,var(--brand) 14%,transparent);color:var(--brand);border-radius:6px;padding:2px 7px;margin-left:8px;vertical-align:middle}
+/* 심화학습 */
+.parts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px}
+.part{border:1.5px solid var(--c);border-radius:12px;padding:6px 12px;text-align:center}
+.part b{display:block;font-size:18px}.part small{color:var(--sub);font-size:12.5px}
+.plus{color:var(--sub);font-weight:700}
+.bdg{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;line-height:18px;padding:0 5px;border-radius:999px;background:var(--ink);color:var(--bg);font-size:11px;font-weight:700;text-align:center}
+.ex .row2{display:flex;align-items:flex-start;gap:8px;justify-content:space-between}
+.ibtn.sm{width:28px;height:28px;margin:-3px -6px -3px 0;border:0;background:transparent;border-radius:8px}
 </style>
 </head>
 <body>
@@ -414,6 +422,23 @@ const STAGES=[{n:'새 단어',c:'color-mix(in srgb,var(--ink) 25%,transparent)'}
 const stageOf=w=>w.reviews===0?0:w.ivl<7?1:w.ivl<30?2:3;
 const lvOf=w=>w.ivl<1?1:w.ivl<3?2:w.ivl<7?3:w.ivl<30?4:5;
 const LV_NAME={1:'인식',2:'맥락',3:'인출',4:'활용',5:'생산'};
+const DEEP_AT=3;
+const deepList=lang=>words.filter(w=>!w.incomplete&&w.lang===lang&&w.lapses>=DEEP_AT).sort((a,b)=>b.lapses-a.lapses||a.id-b.id);
+const FIRE='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c.5 3.2-2.8 4.6-4 7.4-1.2 2.8.2 5.3 1.6 6.5C9.4 15.6 10 14 11.4 13c0 2 3.6 2.6 3.6 5.4 1.8-1 3-2.8 3-4.9C18 9.4 13.6 8.2 12 3z"/></svg>';
+const SPK='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>';
+const dictUrl=w=>w.lang==='en'?'https://dictionary.cambridge.org/dictionary/english/'+encodeURIComponent(w.word):'https://www.weblio.jp/content/'+encodeURIComponent(w.word);
+const srcLine=t=>t?`<div class="muted" style="font-size:12px;margin-top:6px">출처: ${esc(t)}</div>`:'';
+/* 심화 정보: 영영(일본어는 일본어) 풀이 + 어원·구성 */
+function deepSecs(w){
+  const d=w.deep;if(!d)return '';let h='';
+  if(d.def)h+=`<div class="sec"><div class="lb">${w.lang==='en'?'영영 풀이':'일본어 뜻풀이'}</div><div style="font-size:16px;font-weight:600">${esc(d.def)}</div>${srcLine(d.src?.def)}<div style="margin-top:8px"><a class="chip gray" style="text-decoration:none" href="${dictUrl(w)}" target="_blank" rel="noopener">📖 사전에서 더 보기 ↗</a></div></div>`;
+  if(d.origin||d.parts?.length)h+=`<div class="sec"><div class="lb">어원 · 구성</div>${d.parts?.length?`<div class="parts">${d.parts.map((p,i)=>(i?'<span class="plus">+</span>':'')+`<div class="part"><b>${esc(p.p)}</b><small>${esc(p.m)}</small></div>`).join('')}</div>`:''}${d.origin?`<div style="font-size:15px">💡 ${esc(d.origin)}</div>`:''}${srcLine(d.src?.origin)}</div>`;
+  return h;
+}
+function usageSec(w){
+  const u=w.deep?.usage;if(!u)return '';
+  return `<div class="sec"><div class="lb">활용법</div>${u.pattern?`<div style="font-weight:700;font-size:16px">${esc(u.pattern)}</div>`:''}${u.objs?.length?`<div style="margin:8px 0">${u.objs.map(x=>`<span class="chip gray" style="margin:0 6px 6px 0">${esc(x)}</span>`).join('')}</div>`:''}${(u.notes||[]).map(n=>`<div class="note" style="margin-bottom:6px">⚠️ ${esc(n)}</div>`).join('')}${srcLine(u.src)}</div>`;
+}
 const isWeak=w=>w.lapses>=2||w.star||w.hardCount>=2;
 const isPhrase=w=>TYPES[w.pos]?.kind==='phrase';
 const ladder=w=>`<div class="ladder">${[1,3,7,15,30].map(x=>`<span class="${w.ivl>=x?'on':''}">${x}일${x===30?'+':''}</span>`).join('<i></i>')}</div>`;
@@ -562,7 +587,8 @@ function vLibrary(){
     <button class="ibtn ${f.q?'on':''}" id="stog" aria-label="검색"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button>
     <label class="ibtn ${f.pos!=='all'?'on':''}" aria-label="분류"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16l-6 7.5V19l-4-2v-4.5z"/></svg>
       <select id="psel" style="position:absolute;inset:0;opacity:0;width:100%;height:100%;padding:0;border:0"><option value="all">전체</option><option value="k:word" ${f.pos==='k:word'?'selected':''}>단어만</option><option value="k:phrase" ${f.pos==='k:phrase'?'selected':''}>표현(구·숙어)만</option>${typesOf(f.lang).map(([k,t])=>`<option value="${k}" ${f.pos===k?'selected':''}>${t.label}</option>`).join('')}</select></label>
-    <button class="ibtn ${f.view&&f.view!=='all'?'on':''}" id="vtog" aria-label="보기 방식" style="font-weight:800;font-size:15px">${f.view==='en'?(f.lang==='ja'?'あ':'A'):f.view==='ko'?'가':'A가'}</button></div>
+    <button class="ibtn ${f.view&&f.view!=='all'?'on':''}" id="vtog" aria-label="보기 방식" style="font-weight:800;font-size:15px">${f.view==='en'?(f.lang==='ja'?'あ':'A'):f.view==='ko'?'가':'A가'}</button>${deepList(f.lang).length?`<button class="ibtn" id="dpb" aria-label="심화학습 (${DEEP_AT}번 이상 틀린 단어)">${FIRE}<span class="bdg">${deepList(f.lang).length}</span></button>`:''}</div>
+  ${words.some(w=>!w.incomplete&&w.lang===f.lang&&w.lapses>=DEEP_AT&&!w.deep)?`<div class="note" style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b style="flex:1;min-width:140px">🔥 심화 설명이 없는 단어 ${words.filter(w=>!w.incomplete&&w.lang===f.lang&&w.lapses>=DEEP_AT&&!w.deep).length}개</b><button class="btn sm" id="dpc">지시문 복사</button><button class="btn sm ghost" id="dpi">붙여 넣기 →</button></div>`:''}
   ${words.some(w=>w.incomplete&&w.lang===f.lang)?`<div class="note" style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b style="flex:1;min-width:140px">🧩 보강 필요 ${words.filter(w=>w.incomplete&&w.lang===f.lang).length}개</b><button class="btn sm" id="lenr">지시문 복사</button><button class="btn sm ghost" id="limp">붙여 넣기 →</button></div>`:''}
   <input type="search" id="q" placeholder="단어·뜻 검색" value="${esc(f.q)}" style="margin-top:10px;${f.q||f.sopen?'':'display:none'}">
   <div class="list" id="lst"></div>`;
@@ -576,6 +602,8 @@ function vLibrary(){
   };
   draw();
   $('#lenr')&&($('#lenr').onclick=()=>copyEnrich(words.filter(w=>w.incomplete&&w.lang===f.lang)));$('#limp')&&($('#limp').onclick=()=>go('import'));
+  $('#dpb')&&($('#dpb').onclick=()=>{const ids=deepList(f.lang).map(w=>w.id);openSheet(ids[0],ids,'library')});
+  $('#dpc')&&($('#dpc').onclick=()=>copyDeep(words.filter(w=>!w.incomplete&&w.lang===f.lang&&w.lapses>=DEEP_AT&&!w.deep)));$('#dpi')&&($('#dpi').onclick=()=>go('import'));
   $('#stog').onclick=()=>{f.sopen=!f.sopen;const q=$('#q');q.style.display=f.sopen||f.q?'':'none';if(f.sopen)q.focus()};
   $('#psel').onchange=e=>{f.pos=e.target.value;vLibrary()};
   $('#vtog').onclick=()=>{const o=['all','en','ko'];f.view=o[(o.indexOf(f.view||'all')+1)%3];toast(f.view==='all'?'영어 + 뜻':f.view==='en'?LANG[f.lang]+'만 보기':'한글만 보기');vLibrary()};
@@ -585,6 +613,50 @@ function vLibrary(){
 /* ---------- 미완성 카드 보강 지시문 ---------- */
 const enrichText=list=>PROMPT+'\n\n이번에는 이미지 없이, 아래 단어/표현만 카드로 만들어 줘 (적힌 뜻이 있으면 meaning에 반영):\n'+list.map(w=>'- '+w.word+(w.meaning&&!w.meaning.startsWith('(')?' | '+w.meaning:'')).join('\n');
 const copyEnrich=list=>navigator.clipboard?.writeText(enrichText(list)).then(()=>toast(`${list.length}개 보강 지시문을 복사했어요 → AI에 붙여 넣고, 결과는 가져오기에 붙여 넣으세요`),()=>toast('복사 실패'));
+
+/* ---------- 심화 카드 보강 지시문 ---------- */
+const DEEP_PROMPT=`너는 영어/일본어 단어 '심화학습' 카드 작성기야. 아래 단어들은 내가 3번 이상 틀린 단어야. 단순 암기가 아니라 이해로 기억하게 해 줘.
+아래 JSON 배열 형식으로만 출력하고 설명 문장은 쓰지 마. 설명은 한국어(영영 풀이·예문 제외).
+
+가장 중요한 규칙
+- 반드시 웹 검색으로 실제 사전(영어: Etymonline, Wiktionary, Cambridge, Merriam-Webster / 일본어: 国語辞典, Wiktionary 등)을 찾아보고, 거기서 확인한 내용만 써. 기억에만 의존하지 마.
+- 근거를 못 찾았거나 학계에서 불확실한 어원, 민간어원(속설)은 지어내지 말고 빈 문자열로 둬. 추정이면 문장에 "추정"이라고 적어.
+- 각 항목의 src에 출처(사전 이름)를 적어. 사전 문장을 그대로 베끼지 말고 쉬운 말로 짧게 풀어 쓸 것.
+
+항목
+- def: 영어(lang:"en")는 학습자용 영영 풀이 한 문장(쉬운 영어). 일본어(lang:"ja")는 일본어 뜻풀이 한 문장.
+- parts: 단어를 의미 단위로 쪼갠 조각 [{"p":"조각","m":"그 조각의 뜻"}]. 쪼갤 수 없으면 [].
+- origin: 어원·형성 과정 2~3문장. 일본어는 한자 구성(각 글자의 뜻)을 중심으로.
+- ex: 기존 예문과 다른 상황의 새 예문 2개 (기존 예문은 아래에 적어 줌). 해당 단어(활용형 포함)는 [[ ]]로 감싸고, tr(한국어 번역)에서도 그에 해당하는 부분을 [[ ]]로 감쌀 것. 예문 속 나머지 단어는 쉬운 것으로.
+- usage: 활용법. pattern(문형, 예: accomplish + 목적어), objs(자주 오는 목적어·대상 3~4개), notes(주의사항 1~2개, 예: 목적어 필수 여부·전치사·자주 하는 실수), src(출처).
+- 외우는 팁·말장난식 연상은 쓰지 마.
+
+[{"lang":"en","word":"","deep":{"def":"","parts":[{"p":"","m":""}],"origin":"","src":{"def":"","origin":""},"ex":[{"t":"","tr":""},{"t":"","tr":""}],"usage":{"pattern":"","objs":[],"notes":[],"src":""}}}]`;
+const deepText=list=>DEEP_PROMPT+'\n\n대상 단어/표현 (뜻 | 품사 | 기존 예문):\n'+list.map(w=>'- '+w.word+' | '+w.meaning+' | '+label(w)+' | '+w.examples.map(e=>e.t.replace(/\[\[|\]\]/g,'')).join(' / ')).join('\n');
+const copyDeep=list=>navigator.clipboard?.writeText(deepText(list)).then(()=>toast(`${list.length}개 심화 지시문을 복사했어요 → 웹 검색 되는 AI에 붙여 넣고, 결과는 가져오기에 붙여 넣으세요`),()=>toast('복사 실패'));
+/* 심화 결과(JSON)를 기존 단어에 얹는다. 예문은 기존 + 새 예문(합쳐서 5개) */
+function applyDeep(txt){
+  txt=txt.trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();
+  if(!/^[\[{]/.test(txt))return null;
+  let d;try{d=JSON.parse(txt)}catch(e){return null}
+  const arr=Array.isArray(d)?d:[d];
+  if(!arr.length||!arr.every(o=>o&&typeof o.deep==='object'&&o.deep&&!o.meaning))return null;
+  const S=v=>typeof v==='string'?v.trim():'',A=v=>Array.isArray(v)?v:[];
+  let n=0;const miss=[];
+  arr.forEach(o=>{
+    const w=words.find(x=>x.word.toLowerCase()===S(o.word).toLowerCase()&&(!o.lang||x.lang===o.lang));
+    if(!w){miss.push(o.word);return}
+    const x=o.deep,u=x.usage||{};
+    const ex=A(x.ex).filter(e=>e&&S(e.t)).map(e=>({t:S(e.t),tr:S(e.tr)}));
+    const old=w.deep?.ex||[];
+    w.examples=w.examples.filter(e=>!old.some(q=>q.t===e.t));
+    ex.forEach(e=>{if(!w.examples.some(q=>q.t===e.t))w.examples.push(e)});
+    const usage={pattern:S(u.pattern),objs:A(u.objs).map(S).filter(Boolean),notes:A(u.notes).map(S).filter(Boolean),src:S(u.src)};
+    w.deep={def:S(x.def),origin:S(x.origin),parts:A(x.parts).filter(p=>p&&S(p.p)).map(p=>({p:S(p.p),m:S(p.m)})),src:{def:S(x.src?.def),origin:S(x.src?.origin)},ex,usage:(usage.pattern||usage.objs.length||usage.notes.length)?usage:null};
+    n++;
+  });
+  return {n,miss};
+}
 
 /* ---------- 카드 상세 ---------- */
 let cardCtx={id:0,ids:[],back:'library',y:0,open:new Set()};
@@ -604,8 +676,11 @@ function vCard(){
       <button class="ibtn" id="pl" aria-label="발음 듣기"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg></button></div>
     <div style="font-size:20px;font-weight:700;margin-top:12px">${esc(w.meaning)} ${chipOf(w)}</div>
     ${w.pattern?`<div class="muted" style="margin-top:6px">${esc(w.pattern)}${w.sep?' · '+esc(w.sep):''}</div>`:''}
+    ${deepSecs(w)}
+    ${!w.incomplete&&w.lapses>=DEEP_AT&&!w.deep?`<div class="sec"><div class="note">🔥 ${DEEP_AT}번 이상 틀린 단어예요. 영영 풀이·어원·예문을 더하면 이해가 쉬워져요.<div class="row"><button class="btn sm" id="dpc1">심화 지시문 복사</button><button class="btn sm ghost" id="dpi1">가져오기로 →</button></div></div></div>`:''}
     ${w.incomplete?`<div class="sec"><div class="note">🧩 아직 뜻만 있는 카드예요. 지시문을 복사해 AI에 붙여 넣고, 받은 결과를 가져오기에 붙여 넣으면 예문·유형이 채워져요.<div class="row"><button class="btn sm" id="enr1">보강 지시문 복사</button><button class="btn sm ghost" id="enr2">가져오기로 →</button></div></div></div>`:''}
-    ${w.examples.length?`<div class="sec"><div class="lb">예문 · 눌러서 정답 보기</div>${w.examples.map((e,i)=>`<div class="ex tap" data-ex="${i}"><p>${hl(e.t)}</p><p class="tr">${c.has(i)?hl(e.tr||''):/\[\[/.test(e.tr||'')?blank(e.tr):'<span class="blank" style="min-width:140px">＿＿＿＿＿＿＿＿</span>'}</p></div>`).join('')}</div>`:''}
+    ${w.examples.length?`<div class="sec"><div class="lb">예문 · 눌러서 정답 보기</div>${w.examples.map((e,i)=>`<div class="ex tap" data-ex="${i}"><div class="row2"><p>${hl(e.t)}</p><button class="ibtn sm" data-say="${esc(e.t)}" aria-label="예문 듣기">${SPK}</button></div><p class="tr">${c.has(i)?hl(e.tr||''):/\[\[/.test(e.tr||'')?blank(e.tr):'<span class="blank" style="min-width:140px">＿＿＿＿＿＿＿＿</span>'}</p></div>`).join('')}</div>`:''}
+    ${usageSec(w)}
     ${w.note?`<div class="muted" style="margin-top:6px">💡 ${esc(w.note)}</div>`:''}
     ${w.mnemonic?`<div class="muted" style="margin-top:6px">💡 ${esc(w.mnemonic)}</div>`:''}
     ${w.collocations?.length?`<div class="sec"><div class="lb">자주 쓰는 표현</div>${w.collocations.map(x=>`<span class="chip gray" style="margin:0 6px 6px 0">${esc(x)}</span>`).join('')}</div>`:''}
@@ -617,7 +692,9 @@ function vCard(){
   document.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>cardStep(+b.dataset.st));
   $('#pl').onclick=()=>speak(w);
   $('#star').onclick=()=>{w.star=!w.star;save();vCard()};
+  document.querySelectorAll('[data-say]').forEach(b=>b.onclick=e=>{e.stopPropagation();say(b.dataset.say.replace(/\[\[(.+?)\]\]/g,'$1'),w.lang)});
   document.querySelectorAll('[data-ex]').forEach(e=>e.onclick=()=>{const i=+e.dataset.ex;c.has(i)?c.delete(i):c.add(i);vCard()});
+  $('#dpc1')&&($('#dpc1').onclick=()=>copyDeep([w]));$('#dpi1')&&($('#dpi1').onclick=()=>go('import'));
   $('#enr1')&&($('#enr1').onclick=()=>copyEnrich([w]));$('#enr2')&&($('#enr2').onclick=()=>go('import'));
   $('#del').onclick=()=>{if(confirm('이 단어를 삭제할까요?')){words=words.filter(x=>x.id!==w.id);cardCtx.ids=a.filter(x=>x!==w.id);save();const n=cardCtx.ids[Math.min(k,cardCtx.ids.length-1)];if(n==null)cardBack();else{cardCtx.id=n;cardCtx.open=new Set();vCard()}}};
 }
@@ -666,7 +743,7 @@ function vImport(){
     <div class="step"><h3>(사진·PDF) 외부 AI에 지시문 + 이미지 보내기</h3>
       <pre>${esc(PROMPT)}</pre>
       <button class="btn sm" id="cp">📋 지시문 복사</button></div>
-    <div class="step"><h3>AI 결과(JSON) 또는 단어 목록(TXT)을 붙여넣기</h3><div class="muted" style="margin-bottom:8px">TXT는 한 줄에 하나: <code>단어</code> 또는 <code>단어 - 뜻</code> / <code>단어 | 뜻</code>. 영어·일본어는 자동으로 구분해요.</div>
+    <div class="step"><h3>AI 결과(JSON) 또는 단어 목록(TXT)을 붙여넣기</h3><div class="muted" style="margin-bottom:8px">TXT는 한 줄에 하나: <code>단어</code> 또는 <code>단어 - 뜻</code> / <code>단어 | 뜻</code>. 영어·일본어는 자동으로 구분해요. 심화학습 결과(JSON)도 여기에 붙여 넣으면 해당 단어에 영영 풀이·어원·예문이 더해져요.</div>
       <textarea id="tx" placeholder='[ {"lang":"en","word":"...", ...} ]'>${esc(s.text)}</textarea>
       <div class="row"><button class="btn" id="pv">저장</button><button class="btn ghost" id="sm">JSON 샘플</button><button class="btn ghost" id="sm2">TXT 샘플</button></div>
       ${s.err?`<div class="err">⚠️ ${esc(s.err)}</div>`:''}</div>
@@ -684,6 +761,8 @@ function vImport(){
   $('#sm').onclick=()=>{s.text=JSON.stringify(SAMPLE_IMPORT,null,1);s.err='';vImport()};
   $('#pv').onclick=()=>{
     s.text=tx.value;let items;
+    const dr=applyDeep(s.text);
+    if(dr){save();importState={text:'',items:null,err:'',quick:''};toast(`${dr.n}개 단어에 심화 정보를 더했어요`+(dr.miss.length?` (단어장에 없는 ${dr.miss.length}개는 건너뜀)`:''));go('library');return}
     try{items=parseImport(s.text)}catch(e){s.err='JSON을 읽을 수 없어요: '+e.message;vImport();return}
     let id=Math.max(0,...words.map(w=>w.id)),n=0,skip=0;
     items.forEach(p=>{
