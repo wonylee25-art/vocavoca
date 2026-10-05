@@ -396,7 +396,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const hl=t=>esc(t).replace(/\[\[(.+?)\]\]/g,'<mark>$1</mark>');
 const blank=t=>esc(t).replace(/\[\[(.+?)\]\]/g,'<span class="blank">＿＿＿＿</span>');
-const ans=(w,i=0)=>{const e=w.examples[i];const m=e&&e.t.match(/\[\[(.+?)\]\]/);return m?m[1]:w.word};
+const ans=(w,i=0)=>{const e=w.examples[i];const m=e?[...e.t.matchAll(/\[\[(.+?)\]\]/g)].map(x=>x[1]):[];return m.length?m.join(' '):w.word};   /* 빈칸이 여러 곳(put ＿ away)이면 전부 합쳐서 정답으로 */
 const col=w=>TYPES[w.pos]?.color||'#94a3b8';
 const label=w=>(TYPES[w.pos]?.label||'기타');
 const dueIn=n=>n<=0?'오늘':n+'일 후';
