@@ -433,7 +433,8 @@ const stageOf=w=>w.reviews===0?0:w.ivl<7?1:w.ivl<30?2:3;
 const lvOf=w=>w.ivl<1?1:w.ivl<3?2:w.ivl<7?3:w.ivl<30?4:5;
 const LV_NAME={1:'인식',2:'맥락',3:'인출',4:'활용',5:'생산'};
 const DEEP_AT=3;
-const deepList=lang=>words.filter(w=>!w.incomplete&&w.lang===lang&&w.lapses>=DEEP_AT).sort((a,b)=>b.lapses-a.lapses||a.id-b.id);
+const isDeep=w=>w.lapses>=DEEP_AT||(w.hardCount||0)>=DEEP_AT;   /* 3번 이상 틀렸거나 '애매해요'를 3번 이상 누른 단어 */
+const deepList=lang=>words.filter(w=>!w.incomplete&&w.lang===lang&&isDeep(w)).sort((a,b)=>(b.lapses+(b.hardCount||0))-(a.lapses+(a.hardCount||0))||a.id-b.id);
 const FIRE='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c.5 3.2-2.8 4.6-4 7.4-1.2 2.8.2 5.3 1.6 6.5C9.4 15.6 10 14 11.4 13c0 2 3.6 2.6 3.6 5.4 1.8-1 3-2.8 3-4.9C18 9.4 13.6 8.2 12 3z"/></svg>';
 const SPK='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>';
 const dictUrl=w=>w.lang==='en'?'https://dictionary.cambridge.org/dictionary/english/'+encodeURIComponent(w.word):'https://www.weblio.jp/content/'+encodeURIComponent(w.word);
@@ -597,8 +598,8 @@ function vLibrary(){
     <button class="ibtn ${f.q?'on':''}" id="stog" aria-label="검색"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button>
     <label class="ibtn ${f.pos!=='all'?'on':''}" aria-label="분류"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16l-6 7.5V19l-4-2v-4.5z"/></svg>
       <select id="psel" style="position:absolute;inset:0;opacity:0;width:100%;height:100%;padding:0;border:0"><option value="all">전체</option><option value="k:word" ${f.pos==='k:word'?'selected':''}>단어만</option><option value="k:phrase" ${f.pos==='k:phrase'?'selected':''}>표현(구·숙어)만</option>${typesOf(f.lang).map(([k,t])=>`<option value="${k}" ${f.pos===k?'selected':''}>${t.label}</option>`).join('')}</select></label>
-    <button class="ibtn ${f.view&&f.view!=='all'?'on':''}" id="vtog" aria-label="보기 방식" style="font-weight:800;font-size:15px">${f.view==='en'?(f.lang==='ja'?'あ':'A'):f.view==='ko'?'가':'A가'}</button><button class="ibtn" id="dpb" aria-label="심화학습 (${DEEP_AT}번 이상 틀린 단어)">${FIRE}${deepList(f.lang).length?`<span class="bdg">${deepList(f.lang).length}</span>`:''}</button></div>
-  ${words.some(w=>!w.incomplete&&w.lang===f.lang&&w.lapses>=DEEP_AT&&!w.deep)?`<div class="note" style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b style="flex:1;min-width:140px">🔥 심화 설명이 없는 단어 ${words.filter(w=>!w.incomplete&&w.lang===f.lang&&w.lapses>=DEEP_AT&&!w.deep).length}개</b><button class="btn sm" id="dpc">지시문 복사</button><button class="btn sm ghost" id="dpi">붙여 넣기 →</button></div>`:''}
+    <button class="ibtn ${f.view&&f.view!=='all'?'on':''}" id="vtog" aria-label="보기 방식" style="font-weight:800;font-size:15px">${f.view==='en'?(f.lang==='ja'?'あ':'A'):f.view==='ko'?'가':'A가'}</button><button class="ibtn" id="dpb" aria-label="심화학습 (${DEEP_AT}번 이상 틀리거나 애매했던 단어)">${FIRE}${deepList(f.lang).length?`<span class="bdg">${deepList(f.lang).length}</span>`:''}</button></div>
+  ${words.some(w=>!w.incomplete&&w.lang===f.lang&&isDeep(w)&&!w.deep)?`<div class="note" style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b style="flex:1;min-width:140px">🔥 심화 설명이 없는 단어 ${words.filter(w=>!w.incomplete&&w.lang===f.lang&&isDeep(w)&&!w.deep).length}개</b><button class="btn sm" id="dpc">지시문 복사</button><button class="btn sm ghost" id="dpi">붙여 넣기 →</button></div>`:''}
   ${words.some(w=>w.incomplete&&w.lang===f.lang)?`<div class="note" style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b style="flex:1;min-width:140px">🧩 보강 필요 ${words.filter(w=>w.incomplete&&w.lang===f.lang).length}개</b><button class="btn sm" id="lenr">지시문 복사</button><button class="btn sm ghost" id="limp">붙여 넣기 →</button></div>`:''}
   <input type="search" id="q" placeholder="단어·뜻 검색" value="${esc(f.q)}" style="margin-top:10px;${f.q||f.sopen?'':'display:none'}">
   <div class="list" id="lst"></div>`;
@@ -612,8 +613,8 @@ function vLibrary(){
   };
   draw();
   $('#lenr')&&($('#lenr').onclick=()=>copyEnrich(words.filter(w=>w.incomplete&&w.lang===f.lang)));$('#limp')&&($('#limp').onclick=()=>go('import'));
-  $('#dpb').onclick=()=>{const ids=deepList(f.lang).map(w=>w.id);if(!ids.length)return toast(`${DEEP_AT}번 이상 틀린 단어가 아직 없어요`);openSheet(ids[0],ids,'library')};
-  $('#dpc')&&($('#dpc').onclick=()=>copyDeep(words.filter(w=>!w.incomplete&&w.lang===f.lang&&w.lapses>=DEEP_AT&&!w.deep)));$('#dpi')&&($('#dpi').onclick=()=>go('import'));
+  $('#dpb').onclick=()=>{const ids=deepList(f.lang).map(w=>w.id);if(!ids.length)return toast(`${DEEP_AT}번 이상 틀리거나 애매했던 단어가 아직 없어요`);openSheet(ids[0],ids,'library')};
+  $('#dpc')&&($('#dpc').onclick=()=>copyDeep(words.filter(w=>!w.incomplete&&w.lang===f.lang&&isDeep(w)&&!w.deep)));$('#dpi')&&($('#dpi').onclick=()=>go('import'));
   $('#stog').onclick=()=>{f.sopen=!f.sopen;const q=$('#q');q.style.display=f.sopen||f.q?'':'none';if(f.sopen)q.focus()};
   $('#psel').onchange=e=>{f.pos=e.target.value;vLibrary()};
   $('#vtog').onclick=()=>{const o=['all','en','ko'];f.view=o[(o.indexOf(f.view||'all')+1)%3];toast(f.view==='all'?'영어 + 뜻':f.view==='en'?LANG[f.lang]+'만 보기':'한글만 보기');vLibrary()};
@@ -625,7 +626,7 @@ const enrichText=list=>PROMPT+'\n\n이번에는 이미지 없이, 아래 단어/
 const copyEnrich=list=>navigator.clipboard?.writeText(enrichText(list)).then(()=>toast(`${list.length}개 보강 지시문을 복사했어요 → AI에 붙여 넣고, 결과는 가져오기에 붙여 넣으세요`),()=>toast('복사 실패'));
 
 /* ---------- 심화 카드 보강 지시문 ---------- */
-const DEEP_PROMPT=`너는 영어/일본어 단어 '심화학습' 카드 작성기야. 아래 단어들은 내가 3번 이상 틀린 단어야. 단순 암기가 아니라 이해로 기억하게 해 줘.
+const DEEP_PROMPT=`너는 영어/일본어 단어 '심화학습' 카드 작성기야. 아래 단어들은 내가 자주 틀리거나 헷갈려 한 단어야. 단순 암기가 아니라 이해로 기억하게 해 줘.
 아래 JSON 배열 형식으로만 출력하고 설명 문장은 쓰지 마. 설명은 한국어(영영 풀이·예문 제외).
 
 가장 중요한 규칙
@@ -687,7 +688,7 @@ function vCard(){
     <div style="font-size:20px;font-weight:700;margin-top:12px">${esc(w.meaning)} ${chipOf(w)}</div>
     ${w.pattern?`<div class="muted" style="margin-top:6px">${esc(w.pattern)}${w.sep?' · '+esc(w.sep):''}</div>`:''}
     ${deepSecs(w)}
-    ${!w.incomplete&&w.lapses>=DEEP_AT&&!w.deep?`<div class="sec"><div class="note">🔥 ${DEEP_AT}번 이상 틀린 단어예요. 영영 풀이·어원·예문을 더하면 이해가 쉬워져요.<div class="row"><button class="btn sm" id="dpc1">심화 지시문 복사</button><button class="btn sm ghost" id="dpi1">가져오기로 →</button></div></div></div>`:''}
+    ${!w.incomplete&&isDeep(w)&&!w.deep?`<div class="sec"><div class="note">🔥 ${DEEP_AT}번 이상 틀리거나 애매했던 단어예요. 영영 풀이·어원·예문을 더하면 이해가 쉬워져요.<div class="row"><button class="btn sm" id="dpc1">심화 지시문 복사</button><button class="btn sm ghost" id="dpi1">가져오기로 →</button></div></div></div>`:''}
     ${w.incomplete?`<div class="sec"><div class="note">🧩 아직 뜻만 있는 카드예요. 지시문을 복사해 AI에 붙여 넣고, 받은 결과를 가져오기에 붙여 넣으면 예문·유형이 채워져요.<div class="row"><button class="btn sm" id="enr1">보강 지시문 복사</button><button class="btn sm ghost" id="enr2">가져오기로 →</button></div></div></div>`:''}
     ${w.examples.length?`<div class="sec"><div class="lb">예문 · 눌러서 정답 보기</div>${w.examples.map((e,i)=>`<div class="ex tap" data-ex="${i}"><div class="row2"><p>${hl(e.t)}</p><button class="ibtn sm" data-say="${esc(e.t)}" aria-label="예문 듣기">${SPK}</button></div><p class="tr">${c.has(i)?hl(e.tr||''):/\[\[/.test(e.tr||'')?blank(e.tr):'<span class="blank" style="min-width:140px">＿＿＿＿＿＿＿＿</span>'}</p></div>`).join('')}</div>`:''}
     ${usageSec(w)}
