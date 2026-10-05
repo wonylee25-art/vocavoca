@@ -446,7 +446,7 @@ function vHome(){
   <div class="langs">${items.map(([k,ic,name,ko,c])=>`<button class="lang" data-r="${k}" ${c?'':'disabled'}><span class="lic">${ic}</span><span class="lname">${name}</span><span class="lsub">${ko} · ${c?c+'개':'단어 없음'}</span><span class="lgo">${c?'시작 →':''}</span></button>`).join('')}</div>
   ${incN?`<button class="w" id="goimp" style="--c:var(--ink);margin-top:14px"><div><span class="t" style="font-size:16px">🧩 보강이 필요한 단어 ${incN}개</span></div><div class="side"><span class="chip" style="--c:var(--ink)">채우기 →</span></div></button>`:''}`;
   $('#gostats').onclick=()=>go('stats');
-  document.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>startReview(b.dataset.r));
+  document.querySelectorAll('.lang[data-r]').forEach(b=>b.onclick=()=>startReview(b.dataset.r));
   $('#goimp')&&($('#goimp').onclick=()=>go('import'));
   $('#e-imp')&&($('#e-imp').onclick=()=>go('import'));$('#e-smp')&&($('#e-smp').onclick=()=>{loadSample();go('home')});
 }
