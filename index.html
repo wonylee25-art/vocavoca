@@ -379,7 +379,17 @@ const KEY='voca-v1';
 let words;
 try{words=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!Array.isArray(words))words=[];
-function fixWords(){words.forEach(w=>{if(w.note&&/^토익 빈출/.test(w.note))w.note='';if(w.reviews==null)w.reviews=(w.reps||0)+(w.lapses||0);if(!w.mine)w.mine=[];if(w.ivl==null)w.ivl=w.reps?[1,3,7,14,30,60][Math.min(w.reps-1,5)]:0;if(w.hardCount==null)w.hardCount=0;if(!w.examples)w.examples=[];if(!w.dueAt)w.dueAt=addDays(w.due||0);w.due=daysUntil(w.dueAt)})}
+/* 뜻 끝의 (괄호 설명)은 뜻에서 빼서 w.extra(예문 아래 💡)로 옮긴다 */
+function splitParen(w){
+  if(w.incomplete||typeof w.meaning!=='string')return;
+  let m,n=0;
+  while(n++<3&&(m=w.meaning.match(/^(.*\S)\s*[(（]([^()（）]+)[)）]\s*$/))){
+    w.meaning=m[1].trim();
+    const t=m[2].trim();w.extra=w.extra||[];
+    if(!w.extra.includes(t))w.extra.unshift(t);
+  }
+}
+function fixWords(){words.forEach(w=>{splitParen(w);if(w.note&&/^토익 빈출/.test(w.note))w.note='';if(w.reviews==null)w.reviews=(w.reps||0)+(w.lapses||0);if(!w.mine)w.mine=[];if(w.ivl==null)w.ivl=w.reps?[1,3,7,14,30,60][Math.min(w.reps-1,5)]:0;if(w.hardCount==null)w.hardCount=0;if(!w.examples)w.examples=[];if(!w.dueAt)w.dueAt=addDays(w.due||0);w.due=daysUntil(w.dueAt)})}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(words))}catch(e){}};
 let tl='en',route='home', filter={lang:'en',pos:'all',q:'',src:''}, importState={text:'',items:null,err:''}, sess=null;
 const $=s=>document.querySelector(s);
@@ -448,7 +458,7 @@ const daysUntil=t=>Math.round((new Date(t+'T00:00:00')-new Date(dkey()+'T00:00:0
 const LKEY='voca-log-v1';
 let log;try{log=JSON.parse(localStorage.getItem(LKEY))}catch(e){}
 if(!log)log={};
-fixWords();
+fixWords();save();
 const saveLog=()=>{try{localStorage.setItem(LKEY,JSON.stringify(log))}catch(e){}};
 function streak(){let d=new Date(),c=0;if(!(log[dkey(d)]?.n))d.setDate(d.getDate()-1);while(log[dkey(d)]?.n>0){c++;d.setDate(d.getDate()-1)}return c}
 const chipOf=w=>`<span class="chip solid" style="--c:${col(w)};--on:${TYPES[w.pos]?.on||'#fff'}">${label(w)}</span>`;
@@ -681,6 +691,7 @@ function vCard(){
     ${w.incomplete?`<div class="sec"><div class="note">🧩 아직 뜻만 있는 카드예요. 지시문을 복사해 AI에 붙여 넣고, 받은 결과를 가져오기에 붙여 넣으면 예문·유형이 채워져요.<div class="row"><button class="btn sm" id="enr1">보강 지시문 복사</button><button class="btn sm ghost" id="enr2">가져오기로 →</button></div></div></div>`:''}
     ${w.examples.length?`<div class="sec"><div class="lb">예문 · 눌러서 정답 보기</div>${w.examples.map((e,i)=>`<div class="ex tap" data-ex="${i}"><div class="row2"><p>${hl(e.t)}</p><button class="ibtn sm" data-say="${esc(e.t)}" aria-label="예문 듣기">${SPK}</button></div><p class="tr">${c.has(i)?hl(e.tr||''):/\[\[/.test(e.tr||'')?blank(e.tr):'<span class="blank" style="min-width:140px">＿＿＿＿＿＿＿＿</span>'}</p></div>`).join('')}</div>`:''}
     ${usageSec(w)}
+    ${(w.extra||[]).map(x=>`<div class="muted" style="margin-top:6px">💡 ${esc(x)}</div>`).join('')}
     ${w.note?`<div class="muted" style="margin-top:6px">💡 ${esc(w.note)}</div>`:''}
     ${w.mnemonic?`<div class="muted" style="margin-top:6px">💡 ${esc(w.mnemonic)}</div>`:''}
     ${w.collocations?.length?`<div class="sec"><div class="lb">자주 쓰는 표현</div>${w.collocations.map(x=>`<span class="chip gray" style="margin:0 6px 6px 0">${esc(x)}</span>`).join('')}</div>`:''}
@@ -765,6 +776,7 @@ function vImport(){
     if(dr){save();importState={text:'',items:null,err:'',quick:''};toast(`${dr.n}개 단어에 심화 정보를 더했어요`+(dr.miss.length?` (단어장에 없는 ${dr.miss.length}개는 건너뜀)`:''));go('library');return}
     try{items=parseImport(s.text)}catch(e){s.err='JSON을 읽을 수 없어요: '+e.message;vImport();return}
     let id=Math.max(0,...words.map(w=>w.id)),n=0,skip=0;
+    items.forEach(splitParen);
     items.forEach(p=>{
       const ex0=words.find(x=>x.word.toLowerCase()===p.word.toLowerCase()&&x.lang===p.lang&&(x.incomplete||x.pos===p.pos));
       if(ex0&&ex0.incomplete&&!p.incomplete){Object.assign(ex0,p,{incomplete:false});n++}
@@ -818,6 +830,7 @@ function reveal(w){
   return `<div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:8px"><span style="color:${col(w)};font-weight:800;font-size:20px">${esc(w.word)}</span><button class="ibtn" data-say="w" aria-label="단어 듣기" style="margin-right:3px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg></button></div><div>
     ${['listen','flip'].includes(sess.mode)?`<div style="margin-top:4px;font-weight:600">${esc(w.meaning)}</div>`:''}
     ${ex?`<div class="ex" style="margin-top:8px;--c:${col(w)}"><p style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span>${hl(ex.t)}</span><button class="ibtn" data-say="s" aria-label="예문 듣기" style="margin-right:-9px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg></button></p><p class="tr">${hl(ex.tr||'')}</p></div>`:''}
+    ${(w.extra||[]).map(x=>`<div class="muted" style="margin-top:4px">💡 ${esc(x)}</div>`).join('')}
     ${w.note?`<div class="muted" style="margin-top:4px">💡 ${esc(w.note)}</div>`:''}
     ${w.mnemonic?`<div class="muted" style="margin-top:4px">💡 ${esc(w.mnemonic)}</div>`:''}</div>`;
 }
