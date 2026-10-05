@@ -135,6 +135,7 @@ input:focus,textarea:focus{border-color:var(--brand)}
 .list{display:flex;flex-direction:column;gap:10px;margin-top:8px}
 .w{display:flex;align-items:center;gap:12px;text-align:left;width:100%;border:1px solid var(--line);border-left:9px solid var(--c);border-radius:14px;padding:12px 14px;background:color-mix(in srgb,var(--c) 11%,var(--card))}
 .w .t{font-size:20px;font-weight:800;color:var(--c);letter-spacing:-.01em;line-height:1.25;flex:none;max-width:60%}
+.libhd{display:flex;align-items:center;gap:6px}.libhd .ibtn{width:37px;height:37px;white-space:nowrap}
 .ibtn{position:relative;cursor:pointer;flex:none;width:40px;height:40px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);display:grid;place-items:center}
 .ibtn.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .w .r{display:block;font-size:12px;color:var(--sub);margin-top:2px;font-weight:400;opacity:.8}
@@ -581,21 +582,32 @@ function vSettings(){
 }
 
 /* ---------- 단어장 ---------- */
+/* 단어장 정렬: 고르지 않으면 열 때마다 섞기(메인), 고른 정렬은 새로고침하면 풀림. 같은 값끼리는 섞인 순서(rank) 유지 */
+const SORTS=[['weak','취약순'],['new','최근순'],['unstudied','미학습 순']];
+const weakScore=w=>(w.lapses||0)*2+(w.hardCount||0)+(w.star?3:0);
+const SORTFN={
+  shuffle:r=>(a,b)=>r.get(a.id)-r.get(b.id),
+  weak:r=>(a,b)=>weakScore(b)-weakScore(a)||r.get(a.id)-r.get(b.id),
+  unstudied:r=>(a,b)=>(a.reviews>0)-(b.reviews>0)||(a.reviews?daysUntil(a.dueAt)-daysUntil(b.dueAt):0)||r.get(a.id)-r.get(b.id),   /* 한 번도 안 본 단어 먼저, 그다음 복습이 오래 밀린 순 */
+  new:r=>(a,b)=>b.id-a.id
+};
 function vLibrary(){
   const f=filter;
     $('#view').innerHTML=`
-  <div style="display:flex;align-items:center;gap:8px"><h1 style="margin:0;flex:1;font-size:22px;white-space:nowrap">${LANG[f.lang]} 단어장 <small class="muted" style="font-size:14px;font-weight:600">${words.filter(w=>w.lang===f.lang).length}</small></h1>
+  <div class="libhd"><h1 style="margin:0;flex:1;font-size:22px;white-space:nowrap">${LANG[f.lang]} 단어장 <small class="muted" style="font-size:14px;font-weight:600">${words.filter(w=>w.lang===f.lang).length}</small></h1>
     <button class="ibtn ${f.q?'on':''}" id="stog" aria-label="검색"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button>
     <label class="ibtn ${f.pos!=='all'?'on':''}" aria-label="분류"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16l-6 7.5V19l-4-2v-4.5z"/></svg>
       <select id="psel" style="position:absolute;inset:0;opacity:0;width:100%;height:100%;padding:0;border:0"><option value="all">전체</option><option value="k:word" ${f.pos==='k:word'?'selected':''}>단어만</option><option value="k:phrase" ${f.pos==='k:phrase'?'selected':''}>표현(구·숙어)만</option>${typesOf(f.lang).map(([k,t])=>`<option value="${k}" ${f.pos===k?'selected':''}>${t.label}</option>`).join('')}</select></label>
-    <button class="ibtn ${f.view&&f.view!=='all'?'on':''}" id="vtog" aria-label="보기 방식" style="font-weight:800;font-size:15px">${f.view==='en'?(f.lang==='ja'?'あ':'A'):f.view==='ko'?'가':'A가'}</button><button class="ibtn" id="dpb" aria-label="심화학습 (${DEEP_AT}번 이상 틀리거나 애매했던 단어)">${FIRE}${deepList(f.lang).length?`<span class="bdg">${deepList(f.lang).length}</span>`:''}</button></div>
+    <label class="ibtn ${f.sort?'on':''}" aria-label="정렬"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5v14M4.5 15.5L8 19l3.5-3.5M16 19V5M12.5 8.5L16 5l3.5 3.5"/></svg>
+      <select id="ssel" style="position:absolute;inset:0;opacity:0;width:100%;height:100%;padding:0;border:0"><option value="" disabled hidden ${f.sort?'':'selected'}>정렬</option>${SORTS.map(([k,n])=>`<option value="${k}" ${f.sort===k?'selected':''}>${n}</option>`).join('')}</select></label>
+    <button class="ibtn ${f.view&&f.view!=='all'?'on':''}" id="vtog" aria-label="보기 방식" style="font-weight:800;font-size:14px;letter-spacing:-.5px">${f.view==='en'?(f.lang==='ja'?'あ':'A'):f.view==='ko'?'가':'A가'}</button><button class="ibtn" id="dpb" aria-label="심화학습 (${DEEP_AT}번 이상 틀리거나 애매했던 단어)">${FIRE}${deepList(f.lang).length?`<span class="bdg">${deepList(f.lang).length}</span>`:''}</button></div>
   ${words.some(w=>!w.incomplete&&w.lang===f.lang&&isDeep(w)&&!w.deep)?`<div class="note" style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b style="flex:1;min-width:140px">🔥 심화 설명이 없는 단어 ${words.filter(w=>!w.incomplete&&w.lang===f.lang&&isDeep(w)&&!w.deep).length}개</b><button class="btn sm" id="dpc">지시문 복사</button><button class="btn sm ghost" id="dpi">붙여 넣기 →</button></div>`:''}
   ${words.some(w=>w.incomplete&&w.lang===f.lang)?`<div class="note" style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b style="flex:1;min-width:140px">🧩 보강 필요 ${words.filter(w=>w.incomplete&&w.lang===f.lang).length}개</b><button class="btn sm" id="lenr">지시문 복사</button><button class="btn sm ghost" id="limp">붙여 넣기 →</button></div>`:''}
   <input type="search" id="q" placeholder="단어·뜻 검색" value="${esc(f.q)}" style="margin-top:10px;${f.q||f.sopen?'':'display:none'}">
   <div class="list" id="lst"></div>`;
   const rank=f.rank||(f.rank=new Map(shuffle(words.map(w=>w.id)).map((id,i)=>[id,i])));   /* 열 때마다 순서 섞기 (검색 중에는 유지) */
   const draw=()=>{
-    const L=words.filter(w=>w.lang===f.lang&&(f.pos==='all'||(f.pos==='k:word'?!isPhrase(w):f.pos==='k:phrase'?isPhrase(w):w.pos===f.pos))&&(!f.q||(w.word+w.meaning+w.reading).toLowerCase().includes(f.q.toLowerCase()))).sort((a,b)=>rank.get(a.id)-rank.get(b.id));
+    const L=words.filter(w=>w.lang===f.lang&&(f.pos==='all'||(f.pos==='k:word'?!isPhrase(w):f.pos==='k:phrase'?isPhrase(w):w.pos===f.pos))&&(!f.q||(w.word+w.meaning+w.reading).toLowerCase().includes(f.q.toLowerCase()))).sort(SORTFN[f.sort||'shuffle'](rank));
     $('#lst').innerHTML=L.length?L.map(w=>`<button class="w" data-id="${w.id}" style="--c:${col(w)}">
       <div class="line">${f.view==='ko'?'':`<span class="t">${esc(w.word)}</span>`}${f.view==='en'?'':`<span class="m" ${f.view==='ko'?'style="font-size:18px;font-weight:700"':''}>${esc(w.meaning)}</span>`}</div>
       <div class="side">${chipOf(w)}${w.incomplete?'<span class="hot" style="color:var(--ink)">🧩 보강 필요</span>':isWeak(w)?'<span class="hot">🔥 취약</span>':''}</div></button>`).join(''):'<div class="empty">조건에 맞는 단어가 없어요</div>';
@@ -607,6 +619,7 @@ function vLibrary(){
   $('#dpc')&&($('#dpc').onclick=()=>copyDeep(words.filter(w=>!w.incomplete&&w.lang===f.lang&&isDeep(w)&&!w.deep)));$('#dpi')&&($('#dpi').onclick=()=>go('import'));
   $('#stog').onclick=()=>{f.sopen=!f.sopen;const q=$('#q');q.style.display=f.sopen||f.q?'':'none';if(f.sopen)q.focus()};
   $('#psel').onchange=e=>{f.pos=e.target.value;vLibrary()};
+  $('#ssel').onchange=e=>{f.sort=e.target.value;toast(SORTS.find(x=>x[0]===f.sort)[1]+' 정렬');vLibrary()};
   $('#vtog').onclick=()=>{const o=['all','en','ko'];f.view=o[(o.indexOf(f.view||'all')+1)%3];toast(f.view==='all'?'영어 + 뜻':f.view==='en'?LANG[f.lang]+'만 보기':'한글만 보기');vLibrary()};
   $('#q').oninput=e=>{f.q=e.target.value;draw()};
 }
