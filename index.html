@@ -372,6 +372,15 @@ const PROMPT=`너는 영어/일본어 단어장 카드 생성기야.
 - ja_i(い형용사) ja_na(な형용사) ja_adv(부사) ja_ph(관용구·문형) ja_other
 - reading: 히라가나
 
+품질 규칙 (꼭 지킬 것)
+- word는 실제 사전에 있는 표준 철자만 쓴다. 필기 철자가 이상하면 가장 가까운 올바른 단어로 고치고(고쳤으면 source 끝에 "(철자 교정)"만 덧붙임), 무슨 단어인지 모르겠으면 그 항목은 뺀다. 없는 단어를 만들어 내지 않는다.
+- synonyms는 같은 품사·같은 뜻일 때만 쓴다. 억지로 채우지 말고, 없으면 빈 배열.
+- meaning·tr·note·mnemonic에는 한글과 해당 언어(영어/일본어) 외의 문자를 섞지 않는다. 영어 카드에 한자·특수 문자 금지.
+- 영어 reading은 미국식 IPA 하나로 통일한다 (예: /ˈprɑːfɪt/, /oʊ/).
+- note·mnemonic에는 카드 내용만 쓴다. 작업 과정 설명("오타로 보고 만들었다", "확인해 주세요" 등)은 쓰지 않는다.
+- 예문은 원어민이 실제로 쓰는 자연스러운 문장으로 쓰고, 번역에는 원문에 없는 내용을 더하지 않는다.
+- 확신이 없는 정보는 지어내지 말고 빈 문자열/빈 배열로 둔다.
+
 [{"lang":"en","word":"","reading":"","pos":"","meaning":"",
   "examples":[{"t":"","tr":""}],"collocations":[],"synonyms":[],"mnemonic":"","pattern":"","core":"","sep":"","note":"","source":""}]`;
 
@@ -644,6 +653,7 @@ const DEEP_PROMPT=`너는 영어/일본어 단어 '심화학습' 카드 작성�
 - ex: 기존 예문과 다른 상황의 새 예문 2개 (기존 예문은 아래에 적어 줌). 해당 단어(활용형 포함)는 [[ ]]로 감싸고, tr(한국어 번역)에서도 그에 해당하는 부분을 [[ ]]로 감쌀 것. 예문 속 나머지 단어는 쉬운 것으로.
 - usage: 활용법. pattern(문형, 예: accomplish + 목적어), objs(자주 오는 목적어·대상 3~4개), notes(주의사항 1~2개, 예: 목적어 필수 여부·전치사·자주 하는 실수), src(출처).
 - 외우는 팁·말장난식 연상은 쓰지 마.
+- 한국어 설명에 한자·특수 문자를 섞지 말고, 작업 과정 설명("확인해 주세요" 등)은 쓰지 마.
 
 [{"lang":"en","word":"","deep":{"def":"","parts":[{"p":"","m":""}],"origin":"","src":{"def":"","origin":""},"ex":[{"t":"","tr":""},{"t":"","tr":""}],"usage":{"pattern":"","objs":[],"notes":[],"src":""}}}]`;
 const deepText=list=>DEEP_PROMPT+'\n\n대상 단어/표현 (뜻 | 품사 | 기존 예문):\n'+list.map(w=>'- '+w.word+' | '+w.meaning+' | '+label(w)+' | '+w.examples.map(e=>e.t.replace(/\[\[|\]\]/g,'')).join(' / ')).join('\n');
@@ -732,6 +742,30 @@ function parseText(txt){
   if(!out.length)throw new Error('읽을 수 있는 줄이 없어요');
   return out;
 }
+/* ---------- 가져오기 전 자동 점검: AI가 만든 카드의 흔한 실수를 저장 전에 잡는다 ---------- */
+const HAN_RE=/[\u3400-\u9fff\uf900-\ufaff]/,ODD_RE=/[\u{1D400}-\u{1D7FF}\u200b-\u200f\u2028-\u202f\ufeff]/u,META_RE=/입력된|입력한|오타로|합쳤다|만들었다|확인해 주세요|필기에는|지시문/;
+function lintItems(items){
+  const out=[],seen=new Set();
+  items.forEach(w=>{
+    if(w.incomplete)return;
+    const add=m=>out.push(w.word+' — '+m),exs=w.examples||[];
+    const k=w.lang+'|'+w.word.toLowerCase()+'|'+w.pos;
+    if(seen.has(k))add('같은 단어·품사 카드가 목록에 두 번 있어요');seen.add(k);
+    if(ODD_RE.test(JSON.stringify(w)))add('눈에 안 보이는 특수 문자가 섞여 있어요');
+    if(w.lang==='en'&&[w.meaning,w.note,w.mnemonic,w.pattern,w.sep,...exs.map(e=>e.tr)].some(t=>HAN_RE.test(t||'')))add('한국어 설명에 한자가 섞여 있어요');
+    if([w.note,w.mnemonic].some(t=>META_RE.test(t||'')))add('메모에 작업 설명 같은 문장이 있어요');
+    if(w.lang==='en'&&/əʊ|ɒ|\(r\)/.test(w.reading||''))add('발음기호가 영국식이에요 (미국식으로 통일: '+w.reading+')');
+    if(exs.length<3)add('예문이 '+exs.length+'개예요 (3개 이상)');
+    else if(w.pos==='n_c'&&exs.length<4)add('가산명사인데 복수형 예문이 없어요 (4~5개)');
+    exs.forEach((e,i)=>{
+      const t=e.t||'',tr=e.tr||'';
+      if(!t.includes('[[')||(t.match(/\[\[/g)||[]).length!==(t.match(/\]\]/g)||[]).length)add((i+1)+'번 예문의 [[ ]] 표시가 없거나 짝이 안 맞아요');
+      if(!tr.includes('[[')||(tr.match(/\[\[/g)||[]).length!==(tr.match(/\]\]/g)||[]).length)add((i+1)+'번 예문 번역의 [[ ]] 표시가 없거나 짝이 안 맞아요');
+    });
+    if((w.synonyms||[]).some(x=>String(x).toLowerCase()===w.word.toLowerCase()))add('유의어에 자기 자신이 들어 있어요');
+  });
+  return out;
+}
 function parseImport(txt){
   txt=txt.trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();
   if(!/^[\[{]/.test(txt))return parseText(txt);
@@ -781,6 +815,9 @@ function vImport(){
     try{items=parseImport(s.text)}catch(e){s.err='JSON을 읽을 수 없어요: '+e.message;vImport();return}
     let id=Math.max(0,...words.map(w=>w.id)),n=0,skip=0;
     items.forEach(splitParen);
+    const issues=lintItems(items);
+    if(issues.length&&!confirm('⚠️ 확인이 필요한 항목이 '+issues.length+'건 있어요:\n\n'+issues.slice(0,12).map(x=>'· '+x).join('\n')+(issues.length>12?'\n… 외 '+(issues.length-12)+'건':'')+'\n\n그래도 저장할까요? (취소하면 붙여 넣은 내용이 그대로 남아요)')){
+      s.err='저장을 취소했어요. 확인할 항목 '+issues.length+'건: '+issues.slice(0,6).join(' / ')+(issues.length>6?' …':'');vImport();return}
     items.forEach(p=>{
       const ex0=words.find(x=>x.word.toLowerCase()===p.word.toLowerCase()&&x.lang===p.lang&&(x.incomplete||x.pos===p.pos));
       if(ex0&&ex0.incomplete&&!p.incomplete){Object.assign(ex0,p,{incomplete:false});n++}
