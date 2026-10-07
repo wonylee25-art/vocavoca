@@ -540,10 +540,10 @@ function loadSample(){
   });
   fixWords();save();toast(n+'개 불러왔어요');
 }
-function exportData(){
+function exportData(fname){
   const blob=new Blob([JSON.stringify({app:'voca',v:1,exportedAt:new Date().toISOString(),words,log},null,1)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='voca-backup-'+dkey()+'.json';
-  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast('백업 파일을 저장했어요');
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname||'voca-backup-'+dkey()+'.json';
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast(fname?'동기화 파일을 저장했어요. iCloud Drive에 덮어쓰세요':'백업 파일을 저장했어요');
 }
 function importData(file){
   const r=new FileReader();
@@ -553,6 +553,29 @@ function importData(file){
     if(!confirm(`백업의 단어 ${d.words.length}개로 현재 데이터를 모두 바꿀까요?`))return;
     words=d.words;log=d.log||{};fixWords();save();saveLog();toast('불러왔어요');render();
   }catch(e){toast('불러오기 실패: '+e.message)}};
+  r.readAsText(file);
+}
+/* 기기 간 합치기: 단어는 (언어+단어)로 같은 카드를 찾고, 복습 횟수가 더 많은 쪽을 남긴다. 없는 단어는 추가. 기록은 날짜별로 큰 쪽. */
+function mergeData(d){
+  const key=w=>w.lang+'|'+String(w.word).toLowerCase();
+  const m=new Map(words.map((w,i)=>[key(w),i]));
+  let id=Math.max(0,...words.map(w=>w.id)),add=0,upd=0;
+  d.words.forEach(iw=>{
+    const i=m.get(key(iw));
+    if(i==null){const c=JSON.parse(JSON.stringify(iw));c.id=++id;words.push(c);m.set(key(c),words.length-1);add++}
+    else if((iw.reviews||0)>(words[i].reviews||0)){const c=JSON.parse(JSON.stringify(iw));c.id=words[i].id;words[i]=c;upd++}
+  });
+  Object.entries(d.log||{}).forEach(([k,v])=>{if(!log[k]||(v.n||0)>(log[k].n||0))log[k]=v});
+  fixWords();save();saveLog();
+  return {add,upd};
+}
+function syncFile(file){
+  const r=new FileReader();
+  r.onload=()=>{try{
+    const d=JSON.parse(r.result);
+    if(d.app!=='voca'||!Array.isArray(d.words))throw new Error('Voca 파일이 아니에요');
+    const x=mergeData(d);toast(`합쳤어요 (새 단어 ${x.add}, 갱신 ${x.upd})`);vSettings();
+  }catch(e){toast('합치기 실패: '+e.message)}};
   r.readAsText(file);
 }
 function vSettings(){
@@ -573,6 +596,9 @@ function vSettings(){
     <div class="muted" style="margin-top:12px;font-size:12.5px">★은 자연스러운 음성으로 알려진 것들이에요. 어색하면 다른 음성을 골라 미리듣기로 비교하거나, 카드의 '🔊 네이버 사전' 링크를 쓰세요. 음성 목록은 기기·브라우저마다 달라요.</div>
     <div class="muted" style="margin-top:8px;font-size:12.5px">💡 더 자연스러운 음성: Mac/iPhone/iPad의 <b>손쉬운 사용 → 음성 콘텐츠(Spoken Content) → 시스템 음성 → 관리</b>에서 영어 'Premium/Enhanced' 음성을 내려받으면 여기 목록에 ★로 나타나요. (메뉴 이름은 OS 버전마다 조금 달라요)</div></div>
   <h2>📈 성장</h2><div class="card"><button class="btn sm ghost" id="gst">내 성장 보기</button></div>
+  <h2>🔄 기기 간 동기화 (iCloud Drive)</h2><div class="card">
+    <div class="muted" style="margin-bottom:10px">단어와 학습 기록은 기기마다 따로 저장돼요. <b>공부를 마친 기기</b>에서 ① 파일을 저장해 iCloud Drive의 같은 이름(voca-sync.json)에 덮어쓰고, <b>다른 기기</b>에서 ② 그 파일을 합치세요. 합치기는 현재 데이터를 지우지 않고, 없는 단어를 더하고 복습이 더 많은 쪽을 남겨요.</div>
+    <div class="row"><button class="btn sm" id="sx">① 동기화 파일 저장</button><button class="btn sm ghost" id="si">② 동기화 파일 합치기</button><input type="file" id="sif" accept=".json,application/json" hidden></div></div>
   <h2>💾 백업 · 기기 옮기기</h2><div class="card">
     <div class="muted" style="margin-bottom:10px">지금은 이 기기의 브라우저에만 저장돼요. 다른 기기로 옮기려면 백업 파일을 내보내서 그 기기에서 불러오세요.</div>
     <div class="row"><button class="btn sm" id="exp">백업 내보내기</button><button class="btn sm ghost" id="imp">백업 불러오기</button><input type="file" id="impf" accept=".json,application/json" hidden></div></div>
@@ -584,7 +610,9 @@ function vSettings(){
   $('#ap').onchange=e=>{cfg.autoplay=e.target.checked;saveCfg()};
   $('#rate').oninput=e=>{cfg.rate=+e.target.value;saveCfg();$('#rv').textContent=cfg.rate};
   $('#gst').onclick=()=>go('stats');
-  $('#exp').onclick=exportData;$('#imp').onclick=()=>$('#impf').click();
+  $('#sx').onclick=()=>exportData('voca-sync.json');$('#si').onclick=()=>$('#sif').click();
+  $('#sif').onchange=e=>{const f=e.target.files[0];if(f)syncFile(f);e.target.value=''};
+  $('#exp').onclick=()=>exportData();$('#imp').onclick=()=>$('#impf').click();
   $('#impf').onchange=e=>{const f=e.target.files[0];if(f)importData(f);e.target.value=''};
   $('#smp').onclick=()=>{loadSample();vSettings()};
   $('#rst').onclick=()=>{if(confirm('모든 단어와 학습 기록을 지울까요? 되돌릴 수 없어요. (먼저 백업을 권해요)')){words=[];log={};save();saveLog();toast('지웠어요');vSettings()}};
