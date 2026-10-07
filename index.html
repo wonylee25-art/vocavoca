@@ -432,7 +432,8 @@ function say(text,lang,debug){
   const u=new SpeechSynthesisUtterance(text);u.lang=lang==='ja'?'ja-JP':'en-US';u.rate=cfg.rate;u.pitch=1;
   if(v){u.voice=v;u.lang=v.lang.replace('_','-')}
   if(debug){u.onstart=()=>toast('재생 중: '+(v?v.name:'기본 음성')+' · '+u.lang);u.onerror=e=>toast('재생 실패: '+(e.error||'알 수 없음'))}
-  speechSynthesis.cancel();setTimeout(()=>speechSynthesis.speak(u),80);
+  // iOS/iPadOS(WebKit): 탭 핸들러 안에서 동기로 speak 해야 소리가 남 (setTimeout 쓰면 막힘)
+  const ss=speechSynthesis;if(ss.speaking||ss.pending)ss.cancel();if(ss.paused)ss.resume();ss.speak(u);
 }
 const speak=w=>say(w.word,w.lang);
 const naverUrl=w=>`https://${w.lang==='ja'?'ja':'en'}.dict.naver.com/#/search?query=${encodeURIComponent(w.word)}`;
