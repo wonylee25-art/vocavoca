@@ -124,7 +124,7 @@ select{width:100%;border:1.5px solid var(--line);background:var(--card);color:va
 .fc b{display:block;font-size:20px}.fc small{color:var(--sub);font-size:12px}
 .rates{display:grid;gap:8px;margin-top:10px}.rates.r3{grid-template-columns:repeat(3,1fr)}.rates.r4{grid-template-columns:repeat(4,1fr)}
 .rate{border:2px solid var(--line);background:var(--card);border-radius:14px;padding:11px 4px;display:flex;flex-direction:column;align-items:center;gap:2px}
-.rate small{color:var(--sub);font-size:11.5px}
+.rate small{color:var(--sub);font-size:13px}
 .rate.r-again{border-style:dashed;border-color:var(--ink)}.rate.r-hard{border-color:var(--line)}.rate.r-good{border-color:var(--sub)}.rate.r-easy{border-color:var(--ink)}
 .seg{display:flex;background:color-mix(in srgb,var(--ink) 7%,transparent);border-radius:12px;padding:4px;gap:4px}
 .seg button{flex:1;border:0;background:none;border-radius:9px;padding:9px 6px;font-weight:700;color:var(--sub);white-space:nowrap;font-size:14px}
@@ -134,13 +134,13 @@ input[type=search],input[type=text],textarea{width:100%;border:1.5px solid var(-
 input:focus,textarea:focus{border-color:var(--brand)}
 .list{display:flex;flex-direction:column;gap:10px;margin-top:8px}
 .w{display:flex;align-items:center;gap:12px;text-align:left;width:100%;border:1px solid var(--line);border-left:9px solid var(--c);border-radius:14px;padding:12px 14px;background:color-mix(in srgb,var(--c) 11%,var(--card))}
-.w .t{font-size:20px;font-weight:800;color:var(--c);letter-spacing:-.01em;line-height:1.25;flex:none;max-width:60%}
+.w .t{font-size:21px;font-weight:800;color:var(--c);letter-spacing:-.01em;line-height:1.25;flex:none;max-width:60%}
 .libhd{display:flex;align-items:center;gap:6px}.libhd .ibtn{width:37px;height:37px;white-space:nowrap}
 .ibtn{position:relative;cursor:pointer;flex:none;width:40px;height:40px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);display:grid;place-items:center}
 .ibtn.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .w .r{display:block;font-size:12px;color:var(--sub);margin-top:2px;font-weight:400;opacity:.8}
-.w .m{font-size:15px;font-weight:500;color:var(--ink);min-width:0}
-.w .line{display:flex;align-items:baseline;gap:12px;min-width:0;flex:1}
+.w .m{font-size:16px;font-weight:500;color:var(--ink);min-width:0;flex:1 1 130px}
+.w .line{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 12px;min-width:0;flex:1}
 #lst .w{padding:10px 14px}
 #lst .w .side{flex-direction:row;align-items:center;gap:8px;flex:none}
 .w .side{margin-left:auto;text-align:right;display:flex;flex-direction:column;gap:4px;align-items:flex-end}
@@ -186,14 +186,14 @@ textarea{min-height:150px;font-family:ui-monospace,Menlo,monospace;font-size:12.
 .qmode{font-size:12.5px;color:var(--sub);font-weight:700;margin-bottom:10px}
 .qword{font-size:34px;font-weight:800;color:var(--c);letter-spacing:-.02em}
 .opts{display:grid;gap:10px;margin-top:18px}
-.opt{border:1.5px solid var(--line);background:var(--card);border-radius:14px;padding:14px;text-align:left;font-size:16px}
+.opt{border:1.5px solid var(--line);background:var(--card);border-radius:14px;padding:14px;text-align:left;font-size:18px}
 .opt.right{border-color:var(--ink);background:color-mix(in srgb,var(--ink) 9%,var(--card))}
 .opt.wrong{border:1.5px dashed var(--sub);background:transparent;color:var(--sub);text-decoration:line-through}
 .blank{display:inline-block;min-width:70px;border-bottom:3px solid var(--sub);color:transparent}
 .fb{margin-top:16px;padding:14px;border-radius:14px}
 .fb.ok{background:color-mix(in srgb,var(--ink) 8%,transparent)}
 .fb.no{background:transparent;border:1.5px dashed var(--sub)}
-.sent{font-size:20px;line-height:1.6}
+.sent{font-size:22px;line-height:1.6}
 .empty{text-align:center;padding:50px 10px;color:var(--sub)}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#1b1f2a;color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;z-index:60;opacity:0;pointer-events:none;transition:opacity .2s}
 .toast.show{opacity:1}
@@ -674,7 +674,7 @@ function vLibrary(){
       return;
     }
     $('#lst').innerHTML=L.length?L.map(w=>`<button class="w" data-id="${w.id}" style="--c:${col(w)}">
-      <div class="line">${f.view==='ko'?'':`<span class="t">${esc(w.word)}</span>`}${f.view==='en'?'':`<span class="m" ${f.view==='ko'?'style="font-size:18px;font-weight:700"':''}>${esc(w.meaning)}</span>`}</div>
+      <div class="line">${f.view==='ko'?'':`<span class="t">${esc(w.word)}</span>`}${f.view==='en'?'':`<span class="m" ${f.view==='ko'?'style="font-size:19px;font-weight:700"':''}>${esc(w.meaning)}</span>`}</div>
       <div class="side">${chipOf(w)}${w.incomplete?'<span class="hot" style="color:var(--ink)">🧩 보강 필요</span>':isWeak(w)?'<span class="hot">🔥 취약</span>':''}</div></button>`).join(''):'<div class="empty">조건에 맞는 단어가 없어요</div>';
     document.querySelectorAll('.w').forEach(b=>b.onclick=()=>openSheet(+b.dataset.id,L.map(w=>w.id),'library'));
   };
@@ -926,7 +926,7 @@ const targets=(w,mode)=>mode==='listen'?[w.word]:mode==='cloze'?[ans(w,sess.exi)
 function partText(w){const p=w.word.split(' '),k=p.map(x=>x.toLowerCase()).lastIndexOf(w.core.toLowerCase());if(k>=0)p[k]='＿＿＿';return p.join(' ')}
 function reveal(w){
   const ex=w.examples[sess.exi]||w.examples[0];
-  return `<div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:8px"><span style="color:${col(w)};font-weight:800;font-size:20px">${esc(w.word)}</span><button class="ibtn" data-say="w" aria-label="단어 듣기" style="margin-right:3px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg></button></div><div>
+  return `<div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:8px"><span style="color:${col(w)};font-weight:800;font-size:22px">${esc(w.word)}</span><button class="ibtn" data-say="w" aria-label="단어 듣기" style="margin-right:3px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg></button></div><div>
     ${['listen','flip'].includes(sess.mode)?`<div style="margin-top:4px;font-weight:600">${esc(w.meaning)}</div>`:''}
     ${ex?`<div class="ex" style="margin-top:8px;--c:${col(w)}"><p style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span>${hl(ex.t)}</span><button class="ibtn" data-say="s" aria-label="예문 듣기" style="margin-right:-9px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg></button></p><p class="tr">${hl(ex.tr||'')}</p></div>`:''}
     ${(w.extra||[]).map(x=>`<div class="muted" style="margin-top:4px">💡 ${esc(x)}</div>`).join('')}
