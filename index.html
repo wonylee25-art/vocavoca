@@ -769,7 +769,7 @@ function vCard(){
     ${w.synonyms?.length?`<div class="sec"><div class="lb">유의어</div>${w.synonyms.map(x=>`<span class="chip gray" style="margin:0 6px 6px 0">${esc(x)}</span>`).join('')}</div>`:''}
     ${w.mine?.length?`<div class="sec"><div class="lb">내가 만든 문장</div>${w.mine.map(m=>`<div class="ex"><p>${esc(m)}</p></div>`).join('')}</div>`:''}
     <div class="sec" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">${naverChip(w)}<span style="flex:1"></span><button class="chip gray" id="del" style="cursor:pointer">삭제</button></div>
-    <div class="muted" style="font-size:12px;margin-top:14px;line-height:1.7">${esc(w.source)} · 간격 ${w.ivl}일 · 만남 ${w.reviews} · 틀림 ${w.lapses}</div></div>`;
+    <div class="muted" style="font-size:12px;margin-top:14px;line-height:1.7">${esc(w.source)} · 만남 ${w.reviews} · 틀림 ${w.lapses}</div></div>`;
   $('#cb').onclick=cardBack;
   document.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>cardStep(+b.dataset.st));
   $('#pl').onclick=()=>speak(w);
