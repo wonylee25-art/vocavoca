@@ -409,7 +409,6 @@ const blank=t=>esc(t).replace(/\[\[(.+?)\]\]/g,'<span class="blank">＿＿＿＿
 const ans=(w,i=0)=>{const e=w.examples[i];const m=e?[...e.t.matchAll(/\[\[(.+?)\]\]/g)].map(x=>x[1]):[];return m.length?m.join(' '):w.word};   /* 빈칸이 여러 곳(put ＿ away)이면 전부 합쳐서 정답으로 */
 const col=w=>TYPES[w.pos]?.color||'#94a3b8';
 const label=w=>(TYPES[w.pos]?.label||'기타');
-const dueIn=n=>n<=0?'오늘':n+'일 후';
 const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),1800)}
 const BAD_VOICE=/^(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Fred|Junior|Ralph|Kathy|Grandma|Grandpa|Samantha|Kyoko)(\s|$)/;
@@ -770,7 +769,7 @@ function vCard(){
     ${w.synonyms?.length?`<div class="sec"><div class="lb">유의어</div>${w.synonyms.map(x=>`<span class="chip gray" style="margin:0 6px 6px 0">${esc(x)}</span>`).join('')}</div>`:''}
     ${w.mine?.length?`<div class="sec"><div class="lb">내가 만든 문장</div>${w.mine.map(m=>`<div class="ex"><p>${esc(m)}</p></div>`).join('')}</div>`:''}
     <div class="sec" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">${naverChip(w)}<span style="flex:1"></span><button class="chip gray" id="del" style="cursor:pointer">삭제</button></div>
-    <div class="muted" style="font-size:12px;margin-top:14px;line-height:1.7">${esc(w.source)} · 복습 ${dueIn(w.due)} · 간격 ${w.ivl}일 · 만남 ${w.reviews} · 틀림 ${w.lapses}</div></div>`;
+    <div class="muted" style="font-size:12px;margin-top:14px;line-height:1.7">${esc(w.source)} · 간격 ${w.ivl}일 · 만남 ${w.reviews} · 틀림 ${w.lapses}</div></div>`;
   $('#cb').onclick=cardBack;
   document.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>cardStep(+b.dataset.st));
   $('#pl').onclick=()=>speak(w);
