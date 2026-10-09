@@ -667,7 +667,7 @@ function vLibrary(){
       const must=[w.note,...(w.deep?.usage?.notes||[]).slice(0,1)].filter(Boolean);
       $('#lst').innerHTML=`<div class="card" id="sk" role="button" tabindex="0" style="margin-top:12px;--c:${col(w)};height:400px;overflow-y:auto;cursor:pointer;user-select:none">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><div class="qword" style="min-width:0;overflow-wrap:anywhere">${esc(w.word)}</div><button class="ibtn" id="skp" aria-label="발음 듣기" style="margin-right:-9px;flex:none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4zM15.5 8.5a5 5 0 010 7M18.5 5.5a9 9 0 010 13"/></svg></button></div>
-        ${ex?`<div class="ex" style="margin-top:14px;--c:${col(w)}"><p style="font-size:20px">${st===0?blank(ex.t):hl(ex.t)}</p>${st===1&&ex.tr?`<p class="muted" style="margin-top:4px;font-size:16px">${hl(ex.tr)}</p>`:''}</div>`:''}
+        ${ex?`<div style="display:flex;align-items:flex-start;gap:8px;margin-top:14px"><div class="ex" style="flex:1;min-width:0;margin:0;--c:${col(w)}"><p style="font-size:20px">${st===0?blank(ex.t):hl(ex.t)}</p>${st===1&&ex.tr?`<p class="muted" style="margin-top:4px;font-size:16px">${hl(ex.tr)}</p>`:''}</div><button class="ibtn" id="skx" aria-label="예문 듣기" style="margin-right:-9px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4zM15.5 8.5a5 5 0 010 7M18.5 5.5a9 9 0 010 13"/></svg></button></div>`:''}
         ${st===1?`<div style="margin-top:12px;font-size:20px;font-weight:800">${esc(w.meaning)}</div>`:''}
         ${st===1?must.map(x=>`<div style="margin-top:10px;font-weight:700;font-size:16px">❗ ${esc(x)}</div>`).join(''):''}
       </div>
@@ -675,6 +675,7 @@ function vLibrary(){
       const go2=d=>{if(d>0&&f.si+1>=L.length){f.rank=null;f.skey=null;vLibrary();scrollTo(0,0);return}f.si=(f.si+d+L.length)%L.length;f.st=0;draw();scrollTo(0,0)};
       $('#sk').onclick=()=>{if(st===1)go2(1);else{f.st=1;draw()}};
       $('#skp').onclick=e=>{e.stopPropagation();speak(w)};
+      $('#skx')&&($('#skx').onclick=e=>{e.stopPropagation();say(ex.t.replace(/\[\[(.+?)\]\]/g,'$1'),w.lang)});
       $('#skb').onclick=()=>go2(-1);$('#skn').onclick=()=>go2(1);
       return;
     }
