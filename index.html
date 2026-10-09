@@ -94,6 +94,8 @@ h2{font-size:15px;margin:26px 0 10px;color:var(--sub);font-weight:600}
 .lgo{margin-top:12px;font-weight:800;font-size:16px}
 /* stats & test */
 a.chip{text-decoration:none}
+#gate{position:fixed;inset:0;z-index:100;background:var(--bg);color:var(--ink);display:flex;align-items:center;justify-content:center;padding:24px}
+#gate form{width:100%;max-width:340px}#gate h1{margin:0 0 4px;font-size:30px}
 input[type=email],input[type=password]{width:100%;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:11px 14px;font:inherit;font-size:16px;margin-bottom:8px}
 select{width:100%;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:11px 14px;font:inherit}
 .today{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;margin-top:16px}
@@ -1089,7 +1091,7 @@ async function syncNow(manual){
       else{const x=mergeData({words:Array.isArray(sw.data)?sw.data:[],log:(o.log&&o.log.data)||{}});await syPush();toast(`두 기기의 단어를 합쳤어요 (새 단어 ${x.add})`);if(route!=='review')render()}
     }else if(sy.meta.dirty)await syPush();
     syMsg('동기화됨 · '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}));
-  }catch(e){syMsg(e instanceof TypeError||!navigator.onLine?'오프라인이에요. 연결되면 자동으로 동기화돼요':'동기화 실패: '+e.message);if(!sy.auth&&route==='settings')vSettings()}
+  }catch(e){syMsg(e instanceof TypeError||!navigator.onLine?'오프라인이에요. 연결되면 자동으로 동기화돼요':'동기화 실패: '+e.message);if(!sy.auth){showGate();if(route==='settings')vSettings()}}
   finally{sy.busy=false;syStore()}
 }
 SY={soon(){if(!sy.auth||sy.mute)return;sy.meta.dirty=true;syStore();clearTimeout(sy.timer);sy.timer=setTimeout(()=>syncNow(),2000)}};
@@ -1105,11 +1107,24 @@ function syBind(){
     catch(e){i.disabled=false;syMsg(e instanceof TypeError?'인터넷 연결을 확인해 주세요':e.message)}
   };
   if(n)n.onclick=()=>syncNow(true);
-  if(o)o.onclick=()=>{if(!confirm('로그아웃할까요? 이 기기의 단어는 그대로 남아요.'))return;sy.auth=null;sy.meta={at:null,dirty:false};sy.msg='';syStore();vSettings()};
+  if(o)o.onclick=()=>{if(!confirm('로그아웃할까요? 이 기기의 단어는 그대로 남아요.'))return;sy.auth=null;sy.meta={at:null,dirty:false};sy.msg='';syStore();vSettings();showGate()};
+}
+/* 로그인 화면: 로그인 전에는 앱을 가린다. 한 번 로그인하면 기기에 로그인 정보(토큰)가 남아 다음부터 자동 로그인 */
+function showGate(){
+  if(sy.auth||$('#gate'))return;
+  const g=document.createElement('div');g.id='gate';
+  g.innerHTML=`<form><h1>Voca<b>Voca</b></h1><div class="muted" style="margin-bottom:14px">로그인해 주세요</div><input id="gem" type="email" autocomplete="username" placeholder="이메일" required><input id="gpw" type="password" autocomplete="current-password" placeholder="비밀번호" required><div class="muted" id="gmsg" style="min-height:20px;margin:2px 0 8px"></div><button class="btn" id="gbtn" style="width:100%">로그인</button></form>`;
+  document.body.appendChild(g);
+  const msg=m=>{$('#gmsg').textContent=m};
+  g.querySelector('form').onsubmit=async ev=>{
+    ev.preventDefault();const b=$('#gbtn');b.disabled=true;msg('로그인 중…');
+    try{await sbAuth('password',{email:$('#gem').value.trim(),password:$('#gpw').value});sy.meta={at:null,dirty:false};syStore();g.remove();render();syncNow(true)}
+    catch(e){b.disabled=false;msg(e instanceof TypeError?'인터넷 연결을 확인해 주세요':e.message)}
+  };
 }
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncNow()});
 addEventListener('online',()=>syncNow());
-if(sy.auth)syncNow();
+if(sy.auth)syncNow();else showGate();
 
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});
 go((()=>{try{const t=localStorage.getItem('voca-tab');return /^(test-|lib-)(en|ja)$|^(import|settings)$/.test(t)?t:'lib-en'}catch(e){return 'lib-en'}})());
