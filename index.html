@@ -401,7 +401,7 @@ function splitParen(w){
 }
 function fixWords(){words.forEach(w=>{splitParen(w);if(w.note&&/^토익 빈출/.test(w.note))w.note='';if(w.reviews==null)w.reviews=(w.reps||0)+(w.lapses||0);if(!w.mine)w.mine=[];if(w.ivl==null)w.ivl=w.reps?[1,3,7,14,30,60][Math.min(w.reps-1,5)]:0;if(w.hardCount==null)w.hardCount=0;if(!w.examples)w.examples=[];if(!w.dueAt)w.dueAt=addDays(w.due||0);w.due=daysUntil(w.dueAt)})}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(words))}catch(e){}};
-let tl='en',route='home', filter={lang:'en',pos:'all',q:'',src:''}, importState={text:'',items:null,err:''}, sess=null;
+let tl='en',route='home', filter={lang:'en',pos:'all',q:'',src:'',mode:(()=>{try{return localStorage.getItem('voca-libmode')==='skim'?'skim':'list'}catch(e){return 'list'}})()}, importState={text:'',items:null,err:''}, sess=null;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const hl=t=>esc(t).replace(/\[\[(.+?)\]\]/g,'<mark>$1</mark>');
@@ -648,17 +648,40 @@ function vLibrary(){
     <button class="ibtn ${f.view&&f.view!=='all'?'on':''}" id="vtog" aria-label="보기 방식" style="font-weight:800;font-size:14px;letter-spacing:-.5px">${f.view==='en'?(f.lang==='ja'?'あ':'A'):f.view==='ko'?'가':'A가'}</button><button class="ibtn" id="dpb" aria-label="심화학습 (${DEEP_AT}번 이상 틀리거나 애매했던 단어)">${FIRE}${deepList(f.lang).length?`<span class="bdg">${deepList(f.lang).length}</span>`:''}</button></div>
   ${words.some(w=>!w.incomplete&&w.lang===f.lang&&isDeep(w)&&!w.deep)?`<div class="note" style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b style="flex:1;min-width:140px">🔥 심화 설명이 없는 단어 ${words.filter(w=>!w.incomplete&&w.lang===f.lang&&isDeep(w)&&!w.deep).length}개</b><button class="btn sm" id="dpc">지시문 복사</button><button class="btn sm ghost" id="dpi">붙여 넣기 →</button></div>`:''}
   ${words.some(w=>w.incomplete&&w.lang===f.lang)?`<div class="note" style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b style="flex:1;min-width:140px">🧩 보강 필요 ${words.filter(w=>w.incomplete&&w.lang===f.lang).length}개</b><button class="btn sm" id="lenr">지시문 복사</button><button class="btn sm ghost" id="limp">붙여 넣기 →</button></div>`:''}
+  <div class="seg" style="margin-top:10px"><button id="mlist" class="${f.mode==='skim'?'':'on'}">목록 보기</button><button id="mskim" class="${f.mode==='skim'?'on':''}">훑어보기</button></div>
   <input type="search" id="q" placeholder="단어·뜻 검색" value="${esc(f.q)}" style="margin-top:10px;${f.q||f.sopen?'':'display:none'}">
   <div class="list" id="lst"></div>`;
   const rank=f.rank||(f.rank=new Map(shuffle(words.map(w=>w.id)).map((id,i)=>[id,i])));   /* 열 때마다 순서 섞기 (검색 중에는 유지) */
   const draw=()=>{
-    const L=words.filter(w=>w.lang===f.lang&&(f.pos==='all'||(f.pos==='k:word'?!isPhrase(w):f.pos==='k:phrase'?isPhrase(w):w.pos===f.pos))&&(!f.q||(w.word+w.meaning+w.reading).toLowerCase().includes(f.q.toLowerCase()))).sort(SORTFN[f.sort||'shuffle'](rank));
+    const L=words.filter(w=>w.lang===f.lang&&(f.pos==='all'||(f.pos==='k:word'?!isPhrase(w):f.pos==='k:phrase'?isPhrase(w):w.pos===f.pos))&&(!f.q||(w.word+w.meaning+w.reading).toLowerCase().includes(f.q.toLowerCase()))).sort(SORTFN[f.mode==='skim'?'shuffle':(f.sort||'shuffle')](rank));
+    const skim=f.mode==='skim';$('#lst').className=skim?'':'list';
+    if(skim){
+      const key=L.map(w=>w.id).join(',');if(f.skey!==key){f.skey=key;f.si=0;f.st=0}
+      if(!L.length){$('#lst').innerHTML='<div class="empty">조건에 맞는 단어가 없어요</div>';return}
+      f.si=Math.min(f.si||0,L.length-1);const w=L[f.si],ex=w.examples[0],st=Math.min(f.st||0,1);
+      const must=[w.note,...(w.deep?.usage?.notes||[]).slice(0,1)].filter(Boolean);
+      $('#lst').innerHTML=`<div class="muted" style="display:flex;justify-content:space-between;margin:12px 2px 8px"><span>${f.si+1} / ${L.length}</span><span>${st===0?'탭하면 뜻':'탭하면 다음 단어'}</span></div>
+      <div class="card" id="sk" role="button" tabindex="0" style="--c:${col(w)};height:380px;overflow-y:auto;cursor:pointer;user-select:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><div class="qword" style="min-width:0;overflow-wrap:anywhere">${esc(w.word)}</div><button class="ibtn" id="skp" aria-label="발음 듣기" style="margin-right:-9px;flex:none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4zM15.5 8.5a5 5 0 010 7M18.5 5.5a9 9 0 010 13"/></svg></button></div>
+        ${ex?`<div class="ex" style="margin-top:14px;--c:${col(w)}"><p>${st===0?blank(ex.t):hl(ex.t)}</p>${st===1&&ex.tr?`<p class="muted" style="margin-top:4px">${hl(ex.tr)}</p>`:''}</div>`:''}
+        ${st===1?`<div style="margin-top:12px;font-size:20px;font-weight:800">${esc(w.meaning)}</div>`:''}
+        ${st===1?must.map(x=>`<div style="margin-top:10px;font-weight:700;font-size:11px">❗ ${esc(x)}</div>`).join(''):''}
+      </div>
+      <div class="row" style="margin-top:12px"><button class="btn ghost" style="flex:1" id="skb">← 이전</button><button class="btn" style="flex:1" id="skn">다음 →</button></div>`;
+      const go2=d=>{if(d>0&&f.si+1>=L.length){f.rank=null;f.skey=null;vLibrary();scrollTo(0,0);return}f.si=(f.si+d+L.length)%L.length;f.st=0;draw();scrollTo(0,0)};
+      $('#sk').onclick=()=>{if(st===1)go2(1);else{f.st=1;draw()}};
+      $('#skp').onclick=e=>{e.stopPropagation();speak(w)};
+      $('#skb').onclick=()=>go2(-1);$('#skn').onclick=()=>go2(1);
+      return;
+    }
     $('#lst').innerHTML=L.length?L.map(w=>`<button class="w" data-id="${w.id}" style="--c:${col(w)}">
       <div class="line">${f.view==='ko'?'':`<span class="t">${esc(w.word)}</span>`}${f.view==='en'?'':`<span class="m" ${f.view==='ko'?'style="font-size:18px;font-weight:700"':''}>${esc(w.meaning)}</span>`}</div>
       <div class="side">${chipOf(w)}${w.incomplete?'<span class="hot" style="color:var(--ink)">🧩 보강 필요</span>':isWeak(w)?'<span class="hot">🔥 취약</span>':''}</div></button>`).join(''):'<div class="empty">조건에 맞는 단어가 없어요</div>';
     document.querySelectorAll('.w').forEach(b=>b.onclick=()=>openSheet(+b.dataset.id,L.map(w=>w.id),'library'));
   };
   draw();
+  const setMode=m=>{f.mode=m;if(m==='skim'){f.rank=null;f.skey=null}try{localStorage.setItem('voca-libmode',m)}catch(e){}vLibrary()};
+  $('#mlist').onclick=()=>setMode('list');$('#mskim').onclick=()=>setMode('skim');
   $('#lenr')&&($('#lenr').onclick=()=>copyEnrich(words.filter(w=>w.incomplete&&w.lang===f.lang)));$('#limp')&&($('#limp').onclick=()=>go('import'));
   $('#dpb').onclick=()=>{const ids=deepList(f.lang).map(w=>w.id);if(!ids.length)return toast(`${DEEP_AT}번 이상 틀리거나 애매했던 단어가 아직 없어요`);openSheet(ids[0],ids,'library')};
   $('#dpc')&&($('#dpc').onclick=()=>copyDeep(words.filter(w=>!w.incomplete&&w.lang===f.lang&&isDeep(w)&&!w.deep)));$('#dpi')&&($('#dpi').onclick=()=>go('import'));
