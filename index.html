@@ -968,7 +968,7 @@ function vReview(){
     <div class="muted" style="margin:10px 0 8px">이 단어를 넣어 <b>나만의 문장</b>을 써 보세요. 내 이야기일수록 오래 기억돼요.</div>
     <textarea id="ta" style="min-height:90px;font-family:inherit;font-size:16px" ${dis}>${esc(sess.mineText)}</textarea><div class="row"><button class="btn" id="sb" ${dis}>제출</button></div>`;
   else body=`<div class="qword">${esc(w.word)}</div>${rd}${fb?'':`<div class="muted" style="margin-top:14px">뜻과 쓰임을 머릿속으로 먼저 떠올린 뒤 확인하세요.</div><button class="btn block" style="margin-top:16px" id="rv">정답 보기</button>`}`;
-  const R=(id,label,conf)=>{const n=nextIvl(w,conf);return `<button class="rate ${id}" id="${id}"><b>${label}</b><small>${n?n+'일 후':'오늘 다시'}</small></button>`};
+  const R=(id,label)=>`<button class="rate ${id}" id="${id}"><b>${label}</b></button>`;
   let out='';
   if(fb&&mode==='flip'){
     out=`<div class="fb neu" style="--c:${col(w)}">${reveal(w)}</div><div class="rates r4">${R('r-again','몰라요','again')}${R('r-hard','애매해요','hard')}${R('r-good','알아요','good')}${R('r-easy','쉬워요','easy')}</div>`;
