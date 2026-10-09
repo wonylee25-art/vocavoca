@@ -135,6 +135,10 @@ select{width:100%;border:1.5px solid var(--line);background:var(--card);color:va
 .seg small{opacity:.7;font-weight:600}
 input[type=search],input[type=text],textarea{width:100%;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:12px 14px;font:inherit;outline:none}
 input:focus,textarea:focus{border-color:var(--brand)}
+input[type=number],input[type=date]{width:100%;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:11px 14px;font:inherit;font-size:16px;outline:none;min-width:0}
+.row .btn.sm{white-space:nowrap;flex-shrink:0}
+.exrec{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+.exrec button{border:0;background:none;color:var(--sub);font-size:16px;padding:4px 8px}
 .list{display:flex;flex-direction:column;gap:10px;margin-top:8px}
 .w{display:flex;align-items:center;gap:12px;text-align:left;width:100%;border:1px solid var(--line);border-left:9px solid var(--c);border-radius:14px;padding:12px 14px;background:color-mix(in srgb,var(--c) 11%,var(--card))}
 .w .t{font-size:21px;font-weight:800;color:var(--c);letter-spacing:-.01em;line-height:1.25;flex:none;max-width:60%}
@@ -481,6 +485,10 @@ const LKEY='voca-log-v1';
 let log;try{log=JSON.parse(localStorage.getItem(LKEY))}catch(e){}
 if(!log)log={};
 fixWords();save();
+const EKEY='voca-exam-v1';
+let exams;try{exams=JSON.parse(localStorage.getItem(EKEY))}catch(e){}
+if(!exams||!Array.isArray(exams.toeic)||!Array.isArray(exams.jlpt))exams={toeic:[],jlpt:[]};
+const saveExams=()=>{try{localStorage.setItem(EKEY,JSON.stringify(exams))}catch(e){}};
 const saveLog=()=>{try{localStorage.setItem(LKEY,JSON.stringify(log))}catch(e){}syncSoon()};
 function streak(){let d=new Date(),c=0;if(!(log[dkey(d)]?.n))d.setDate(d.getDate()-1);while(log[dkey(d)]?.n>0){c++;d.setDate(d.getDate()-1)}return c}
 const chipOf=w=>`<span class="chip solid" style="--c:${col(w)};--on:${TYPES[w.pos]?.on||'#fff'}">${label(w)}</span>`;
@@ -509,6 +517,68 @@ function vHome(){
 }
 
 /* ---------- 성장(성취) ---------- */
+/* 시험 기록: 영어=토익(점수), 일본어=JLPT(급수·합격 여부) */
+const JLV=['N5','N4','N3','N2','N1'];
+let exOpen=false;
+const CEFR=['A1','A2','B1','B2','C1'];
+const TOEIC_LO=[0,225,550,785,945];   /* ETS가 공개한 토익(L+R)–CEFR 대응 */
+const partsTxt=x=>[x.rd!=null?'독해 '+x.rd:'',x.ls!=null?'청해 '+x.ls:''].filter(Boolean).join(' · ');
+const sd=d=>d.slice(2).replace(/-/g,'.');
+const dtx=d=>d==null?'':`<span style="font-size:11px;font-weight:600;margin-left:2px;color:var(--sub)">${d>0?'▲'+d:d<0?'▼'+-d:'±0'}</span>`;
+function partsHtml(x,p){
+  const one=(l,k)=>x[k]==null?'':`<span style="font-size:12px;color:var(--sub)">${l} <b style="font-size:14px;color:var(--ink)">${x[k]}</b>${p&&p[k]!=null?dtx(x[k]-p[k]):''}</span>`;
+  return (one('독해','rd')||'<span></span>')+(one('청해','ls')||'<span></span>');
+}
+function examRow(name,main,tot,parts,lv,date){
+  const sm='font-size:12px;color:var(--sub)';
+  return `<b style="font-size:14px">${name}</b><b style="font-size:14px">${main}${tot?'/'+tot:''}</b>${parts}<span style="${sm};justify-self:end">${sd(date)}</span>${lv?`<span class="chip solid" style="--c:var(--brand);--on:var(--brand-ink);font-size:13px;padding:3px 10px">${lv}</span>`:'<span class="muted" style="font-size:12px">-</span>'}`;
+}
+function examHtml(){
+  const t=[...exams.toeic].sort((a,b)=>a.date<b.date?-1:1), j=[...exams.jlpt].sort((a,b)=>a.date<b.date?-1:1);
+  const rec=(k,x,txt)=>`<div class="exrec"><span>${esc(x.date)} · ${txt}</span><button data-del="${k}" data-id="${x.id}" aria-label="삭제">✕</button></div>`;
+  let rows='';
+  if(t.length){
+    const x=t[t.length-1],p=t[t.length-2],ci=TOEIC_LO.filter(v=>x.score>=v).length-1;
+    rows+=examRow('TOEIC',x.score,990,partsHtml(x,p),CEFR[ci],x.date);
+  }
+  if(j.length){
+    const x=j[j.length-1],p=j[j.length-2];
+    const ps=j.filter(y=>y.pass),top=ps.length?ps.reduce((m,y)=>JLV.indexOf(y.level)>JLV.indexOf(m.level)?y:m).level:null;
+    rows+=examRow('JLPT',`${x.level}${x.score!=null?' '+x.score:''}`,x.score!=null?180:null,partsHtml(x,p&&p.level===x.level?p:null),top?CEFR[JLV.indexOf(top)]:null,x.date);
+  }
+  return `<h2>시험</h2>
+  <div class="card" style="padding-top:4px;padding-bottom:12px">${rows?`<div style="display:grid;grid-template-columns:auto auto auto auto 1fr auto;column-gap:12px;row-gap:14px;align-items:baseline;white-space:nowrap;margin-top:14px">${rows}</div>`:'<div class="muted" style="margin-top:12px">시험 기록을 넣으면 점수와 CEFR 단계가 여기에 보여요.</div>'}
+    <details id="exd" ${exOpen?'open':''} style="margin-top:14px"><summary class="muted" style="font-size:13px;cursor:pointer">기록 추가 · 관리</summary>
+      <div style="margin-top:8px"><div class="muted" style="font-size:13px">TOEIC</div>
+      ${[...t].reverse().map(x=>rec('toeic',x,`${x.score}점${partsTxt(x)?` (${partsTxt(x)})`:''}`)).join('')}
+      <div class="row" style="flex-wrap:nowrap"><input type="date" id="te-d" value="${dkey()}"></div>
+      <div class="row" style="flex-wrap:nowrap"><input type="number" id="te-r" inputmode="numeric" min="5" max="495" step="5" placeholder="독해 /495"><input type="number" id="te-l" inputmode="numeric" min="5" max="495" step="5" placeholder="청해 /495"><button class="btn sm" id="te-a">추가</button></div><div class="muted" style="font-size:12px;margin-top:4px">총점은 독해+청해로 자동 계산돼요</div></div>
+      <div style="margin-top:14px"><div class="muted" style="font-size:13px">JLPT</div>
+      ${[...j].reverse().map(x=>rec('jlpt',x,`${x.level}${x.pass?' 합격':''}${x.score!=null?` · ${x.score}/180`:''}${partsTxt(x)?` (${partsTxt(x)})`:''}`)).join('')}
+      <div class="row" style="flex-wrap:nowrap"><input type="date" id="jl-d" value="${dkey()}"><select id="jl-l" style="width:auto">${JLV.map(l=>`<option>${l}</option>`).join('')}</select><select id="jl-p" style="width:auto"><option value="1">합격</option><option value="0">불합격</option></select></div>
+      <div class="row" style="flex-wrap:nowrap"><input type="number" id="jl-s" inputmode="numeric" min="0" max="180" placeholder="총점 /180"><input type="number" id="jl-r" inputmode="numeric" min="0" max="120" placeholder="독해"><input type="number" id="jl-k" inputmode="numeric" min="0" max="60" placeholder="청해"><button class="btn sm" id="jl-a">추가</button></div><div class="muted" style="font-size:12px;margin-top:4px">점수는 모두 선택 사항이에요</div></div>
+    </details></div>`;
+}
+function bindExam(){
+  $('#exd').ontoggle=e=>{exOpen=e.target.open};
+  const nid=a=>Math.max(0,...a.map(x=>x.id||0))+1;
+  $('#te-a').onclick=()=>{
+    const r=+$('#te-r').value,l=+$('#te-l').value,date=$('#te-d').value;
+    if(!date||!(r>=5&&r<=495&&l>=5&&l<=495))return toast('날짜와 독해·청해 점수(각 5~495)를 확인해 주세요');
+    exams.toeic.push({id:nid(exams.toeic),date,score:r+l,rd:r,ls:l});saveExams();vStats();toast('TOEIC 점수를 기록했어요');
+  };
+  $('#jl-a').onclick=()=>{
+    const date=$('#jl-d').value,n=id=>{const v=$(id).value;return v===''?null:+v},score=n('#jl-s'),rd=n('#jl-r'),ls=n('#jl-k');
+    const bad=(v,m)=>v!=null&&!(v>=0&&v<=m);
+    if(!date||bad(score,180)||bad(rd,120)||bad(ls,60))return toast('날짜와 점수 범위(총점 180, 독해 120, 청해 60)를 확인해 주세요');
+    exams.jlpt.push({id:nid(exams.jlpt),date,level:$('#jl-l').value,pass:$('#jl-p').value==='1',score,rd,ls});saveExams();vStats();toast('JLPT 결과를 기록했어요');
+  };
+  document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{
+    if(!confirm('이 기록을 지울까요?'))return;
+    const k=b.dataset.del;exams[k]=exams[k].filter(x=>x.id!==+b.dataset.id);saveExams();vStats();
+  });
+}
+
 function vStats(){
   const mastered=words.filter(w=>stageOf(w)===3).length;
   const goals=[1,5,10,20,50,100,200,500];
@@ -535,11 +605,13 @@ function vStats(){
     <div class="card stat"><b>${studyDays}일</b><span>학습한 날</span></div>
     <div class="card stat"><b>약 ${timeTxt}</b><span>쌓은 시간</span></div>
   </div>
+  ${examHtml()}
   <h2>외운 것 · 외울 것</h2>
   ${lang('en')}${lang('ja')}
   <div class="muted" style="font-size:12.5px">새 단어 → 익히는 중(복습 간격 1~6일) → 익숙함(7~29일) → 외움(30일 이상). 한 달 넘게 간격을 벌려도 맞히면 '외움'이에요.</div>
   ${overcame.length?`<h2>예전엔 자꾸 틀렸는데 🎯</h2><div class="list">${overcame.map(w=>`<button class="w" data-id="${w.id}" style="--c:${col(w)}"><div><span class="t">${esc(w.word)}</span><div class="m">${esc(w.meaning)}</div></div><div class="side"><span class="muted" style="font-size:12px">${w.lapses}번 틀림 → 지금 ${w.ivl}일 간격</span></div></button>`).join('')}</div>`:''}`;
   document.querySelectorAll('.w').forEach(b=>b.onclick=()=>openSheet(+b.dataset.id,[...document.querySelectorAll('.w')].map(x=>+x.dataset.id),'stats'));
+  bindExam();
 }
 
 /* ---------- 설정 · 백업 ---------- */
@@ -552,7 +624,7 @@ function loadSample(){
   fixWords();save();toast(n+'개 불러왔어요');
 }
 function exportData(fname){
-  const blob=new Blob([JSON.stringify({app:'voca',v:1,exportedAt:new Date().toISOString(),words,log},null,1)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({app:'voca',v:1,exportedAt:new Date().toISOString(),words,log,exams},null,1)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname||'voca-backup-'+dkey()+'.json';
   document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast(fname?'동기화 파일을 저장했어요. iCloud Drive에 덮어쓰세요':'백업 파일을 저장했어요');
 }
@@ -562,7 +634,7 @@ function importData(file){
     const d=JSON.parse(r.result);
     if(d.app!=='voca'||!Array.isArray(d.words))throw new Error('Voca 백업 파일이 아니에요');
     if(!confirm(`백업의 단어 ${d.words.length}개로 현재 데이터를 모두 바꿀까요?`))return;
-    words=d.words;log=d.log||{};fixWords();save();saveLog();toast('불러왔어요');render();
+    words=d.words;log=d.log||{};if(d.exams&&Array.isArray(d.exams.toeic)&&Array.isArray(d.exams.jlpt)){exams=d.exams;saveExams()}fixWords();save();saveLog();toast('불러왔어요');render();
   }catch(e){toast('불러오기 실패: '+e.message)}};
   r.readAsText(file);
 }
