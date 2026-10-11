@@ -1194,7 +1194,14 @@ function syBind(){
     catch(e){i.disabled=false;syMsg(e instanceof TypeError?'인터넷 연결을 확인해 주세요':e.message)}
   };
   if(n)n.onclick=()=>syncNow(true);
-  if(o)o.onclick=()=>{if(!confirm('로그아웃할까요? 이 기기의 단어는 그대로 남아요.'))return;sy.auth=null;sy.meta={at:null,dirty:false};sy.msg='';syStore();vSettings();showGate()};
+  /* 로그아웃하면 이 기기의 단어·기록도 비운다(남겨 두면 다음에 로그인한 다른 계정에 그대로 올라감). 계정에는 남아 있어 다시 로그인하면 돌아온다. */
+  if(o)o.onclick=async()=>{
+    if(!confirm('로그아웃할까요? 이 기기의 단어와 학습 기록은 지워지고, 다시 로그인하면 계정에서 불러와요.'))return;
+    o.disabled=true;
+    if(sy.meta.dirty){syMsg('저장 중…');try{await syPush()}catch(e){o.disabled=false;return syMsg('아직 동기화되지 않은 변경이 있어 로그아웃할 수 없어요: '+e.message)}}
+    sy.auth=null;sy.meta={at:null,dirty:false};sy.msg='';
+    sy.mute=true;try{words=[];log={};save();saveLog()}finally{sy.mute=false}
+    syStore();vSettings();showGate()};
 }
 /* 로그인 화면: 로그인 전에는 앱을 가린다. 한 번 로그인하면 기기에 로그인 정보(토큰)가 남아 다음부터 자동 로그인 */
 function showGate(){
