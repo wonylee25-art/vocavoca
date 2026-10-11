@@ -227,15 +227,12 @@ textarea{min-height:150px;font-family:ui-monospace,Menlo,monospace;font-size:12.
   .rate{padding:7px 4px}
   h1{font-size:22px}
   .toplogo{margin-bottom:4px}
-  .card{padding:12px}
   .sec{margin-top:10px}
-  .ex{padding:6px 10px;margin-bottom:4px}
-  .qword{font-size:28px}
-  .skc{height:auto!important;min-height:0;max-height:none;overflow:visible!important;margin-top:6px!important}
-  .skc .ex{margin-top:8px!important}
-  .skc .ex p{font-size:17px!important}
-  .skc [style*="margin-top:12px"],.skc [style*="margin-top:10px"]{margin-top:6px!important}
-  #lst .row{margin-top:8px!important}
+  .ex:not(.skc .ex){padding:6px 10px;margin-bottom:4px}
+  .qword:not(.skc .qword){font-size:28px}
+  .card:not(.skc){padding:12px}
+  .skc .qword{font-size:34px}
+  .skc .ex{padding:10px 12px;margin-bottom:8px}
 }
 </style>
 </head>
@@ -779,7 +776,7 @@ function vLibrary(){
       const must=[w.note,...(w.deep?.usage?.notes||[]).slice(0,1)].filter(Boolean);
       $('#lst').innerHTML=`<div class="card skc" id="sk" role="button" tabindex="0" style="margin-top:12px;--c:${col(w)};height:400px;overflow-y:auto;cursor:pointer;user-select:none">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><div class="qword" style="min-width:0;overflow-wrap:anywhere">${esc(w.word)}</div><button class="ibtn" id="skp" aria-label="발음 듣기" style="margin-right:8px;flex:none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4zM15.5 8.5a5 5 0 010 7M18.5 5.5a9 9 0 010 13"/></svg></button></div>
-        ${ex?`<div class="ex" style="margin-top:14px;--c:${col(w)}"><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;min-width:0"><p style="font-size:20px">${st===0?blank(ex.t):hl(ex.t)}</p>${st===1&&ex.tr?`<p class="muted" style="margin-top:4px;font-size:16px">${hl(ex.tr)}</p>`:''}</div><button class="ibtn" id="skx" aria-label="예문 듣기" style="margin:-6px -4px -6px 0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4zM15.5 8.5a5 5 0 010 7M18.5 5.5a9 9 0 010 13"/></svg></button></div></div>`:''}
+        ${ex?`<div class="ex" style="margin-top:14px;--c:${col(w)}"><div style="display:flex;align-items:flex-start;gap:8px"><div style="flex:1;min-width:0"><p style="font-size:20px">${st===0?blank(ex.t):hl(ex.t)}</p>${st===1&&ex.tr?`<p class="muted" style="margin-top:4px;font-size:16px">${hl(ex.tr)}</p>`:''}</div><button class="ibtn" id="skx" aria-label="예문 듣기" style="margin:-6px -4px 0 0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4zM15.5 8.5a5 5 0 010 7M18.5 5.5a9 9 0 010 13"/></svg></button></div></div>`:''}
         ${st===1?`<div style="margin-top:12px;font-size:20px;font-weight:800">${esc(w.meaning)}</div>`:''}
         ${st===1?must.map(x=>`<div style="margin-top:10px;font-weight:700;font-size:16px">❗ ${esc(x)}</div>`).join(''):''}
       </div>
