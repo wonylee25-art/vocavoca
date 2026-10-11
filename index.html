@@ -422,7 +422,9 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const hl=t=>esc(t).replace(/\[\[(.+?)\]\]/g,'<mark>$1</mark>');
 const blank=t=>esc(t).replace(/\[\[(.+?)\]\]/g,'<span class="blank">＿＿＿＿</span>');
 const ans=(w,i=0)=>{const e=w.examples[i];const m=e?[...e.t.matchAll(/\[\[(.+?)\]\]/g)].map(x=>x[1]):[];return m.length?m.join(' '):w.word};   /* 빈칸이 여러 곳(put ＿ away)이면 전부 합쳐서 정답으로 */
-const col=w=>TYPES[w.pos]?.color||'#94a3b8';
+/* 구동사 색: 목적어를 받으면(분리 가능 · pattern에 '+ 목적어/명사/사람…'; 괄호 안 선택 요소는 제외) 타동사 색, 안 받으면 자동사 색 */
+const tkey=w=>w.pos!=='ph_v'?w.pos:(/^분리 가능/.test(w.sep||'')||/\+/.test((w.pattern||'').replace(/\([^)]*\)/g,'')))?'v_t':'v_i';
+const col=w=>TYPES[tkey(w)]?.color||'#94a3b8';
 const label=w=>(TYPES[w.pos]?.label||'기타');
 const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),1800)}
@@ -498,7 +500,7 @@ if(!exams||!Array.isArray(exams.toeic)||!Array.isArray(exams.jlpt))exams={toeic:
 const saveExams=()=>{try{localStorage.setItem(EKEY,JSON.stringify(exams))}catch(e){}};
 const saveLog=()=>{try{localStorage.setItem(LKEY,JSON.stringify(log))}catch(e){}syncSoon()};
 function streak(){let d=new Date(),c=0;if(!(log[dkey(d)]?.n))d.setDate(d.getDate()-1);while(log[dkey(d)]?.n>0){c++;d.setDate(d.getDate()-1)}return c}
-const chipOf=w=>`<span class="chip solid" style="--c:${col(w)};--on:${TYPES[w.pos]?.on||'#fff'}">${label(w)}</span>`;
+const chipOf=w=>`<span class="chip solid" style="--c:${col(w)};--on:${TYPES[tkey(w)]?.on||'#fff'}">${label(w)}</span>`;
 
 /* ---------- 라우팅 ---------- */
 function go(r){if(r.startsWith('test-')){tl=r.slice(5);r='home'}try{if(/^(test-|lib-)/.test(arguments[0])||/^(import|settings)$/.test(r))localStorage.setItem('voca-tab',arguments[0])}catch(e){}if(r==='home'){if(sess&&sess.lang===tl&&sess.i<sess.queue.length)r='review';else if(words.some(w=>!w.incomplete&&w.lang===tl)){startReview(tl);return}}if(r==='library')r='lib-'+filter.lang;if(r.startsWith('lib-')){filter.lang=r.slice(4);filter.pos='all';filter.rank=null;r='library'}route=r;const tab=r==='card'?'lib-'+filter.lang:r==='review'||r==='home'?'test-'+tl:r==='library'?'lib-'+filter.lang:r==='stats'?'':r;document.querySelectorAll('.nav [data-go]').forEach(b=>b.classList.toggle('on',b.dataset.go===tab));render();scrollTo(0,0)}
