@@ -213,6 +213,30 @@ textarea{min-height:150px;font-family:ui-monospace,Menlo,monospace;font-size:12.
 .bdg{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;line-height:18px;padding:0 5px;border-radius:999px;background:var(--ink);color:var(--bg);font-size:11px;font-weight:700;text-align:center}
 .ex .row2{display:flex;align-items:flex-start;gap:8px;justify-content:space-between}
 .ibtn.sm{width:28px;height:28px;margin:-3px -6px -3px 0;border:0;background:transparent;border-radius:8px}
+/* 가로 모드(낮은 화면): 세로 여백을 줄여 스크롤 없이 한 화면에 */
+@media(orientation:landscape) and (max-height:800px){
+  main{padding:12px 20px 64px}
+  .prog{margin:4px 0 8px}
+  .q{padding:12px 16px}
+  .qmode{margin-bottom:4px}
+  .opts{gap:6px;margin-top:10px}
+  .opt{padding:9px 14px;font-size:17px}
+  .sent{line-height:1.45}
+  .fb{margin-top:8px;padding:10px 12px}
+  .rates{margin-top:6px}
+  .rate{padding:7px 4px}
+  h1{font-size:22px}
+  .toplogo{margin-bottom:4px}
+  .card{padding:12px}
+  .sec{margin-top:10px}
+  .ex{padding:6px 10px;margin-bottom:4px}
+  .qword{font-size:28px}
+  .skc{height:auto!important;min-height:0;max-height:none;overflow:visible!important;margin-top:6px!important}
+  .skc .ex{margin-top:8px!important}
+  .skc .ex p{font-size:17px!important}
+  .skc [style*="margin-top:12px"],.skc [style*="margin-top:10px"]{margin-top:6px!important}
+  #lst .row{margin-top:8px!important}
+}
 </style>
 </head>
 <body>
@@ -413,7 +437,9 @@ function splitParen(w){
     if(!w.extra.includes(t))w.extra.unshift(t);
   }
 }
-function fixWords(){words.forEach(w=>{splitParen(w);if(w.note&&/^토익 빈출/.test(w.note))w.note='';if(w.reviews==null)w.reviews=(w.reps||0)+(w.lapses||0);if(!w.mine)w.mine=[];if(w.ivl==null)w.ivl=w.reps?[1,3,7,14,30,60][Math.min(w.reps-1,5)]:0;if(w.hardCount==null)w.hardCount=0;if(!w.examples)w.examples=[];if(!w.dueAt)w.dueAt=addDays(w.due||0);w.due=daysUntil(w.dueAt)})}
+const META_RE=/입력하신|입력된|입력한|입력 목록|오타|합쳤다|만들었다|작성함|확인해 주세요|필기에는|지시문/;
+const scrubMeta=t=>typeof t!=='string'?t:t.split(/(?<=[.!?。])\s+/).filter(x=>!META_RE.test(x)).join(' ').trim();
+function fixWords(){words.forEach(w=>{splitParen(w);w.note=scrubMeta(w.note);w.mnemonic=scrubMeta(w.mnemonic);if(w.deep?.usage?.notes)w.deep.usage.notes=w.deep.usage.notes.map(scrubMeta).filter(Boolean);if(w.note&&/^토익 빈출/.test(w.note))w.note='';if(w.reviews==null)w.reviews=(w.reps||0)+(w.lapses||0);if(!w.mine)w.mine=[];if(w.ivl==null)w.ivl=w.reps?[1,3,7,14,30,60][Math.min(w.reps-1,5)]:0;if(w.hardCount==null)w.hardCount=0;if(!w.examples)w.examples=[];if(!w.dueAt)w.dueAt=addDays(w.due||0);w.due=daysUntil(w.dueAt)})}
 var SY=null;const syncSoon=()=>{if(SY)SY.soon()};
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(words))}catch(e){}syncSoon()};
 let tl='en',route='home', filter={lang:'en',pos:'all',q:'',src:'',mode:(()=>{try{return localStorage.getItem('voca-libmode')==='skim'?'skim':'list'}catch(e){return 'list'}})()}, importState={text:'',items:null,err:''}, sess=null;
@@ -443,9 +469,14 @@ function pickVoice(lang){
 }
 if('speechSynthesis' in window){speechSynthesis.getVoices();speechSynthesis.onvoiceschanged=()=>{if(route==='settings')render()}}
 const IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-function say(text,lang,debug,plain){
+function say(text,lang,debug,plain,waited){
   if(!('speechSynthesis' in window))return toast('이 브라우저는 음성을 지원하지 않아요');
   const ss=speechSynthesis;
+  // 음성 목록이 아직 로드되지 않았으면(첫 재생) 기본 음성으로 엉뚱한 소리가 나므로, 로드될 때까지 잠깐 기다림
+  if(!IOS&&!plain&&!waited&&!ss.getVoices().length){
+    let done=false;const go=()=>{if(done)return;done=true;ss.removeEventListener('voiceschanged',go);say(text,lang,debug,plain,true)};
+    ss.addEventListener('voiceschanged',go);setTimeout(go,600);return;
+  }
   // iOS/iPadOS(WebKit): 음성 객체를 지정하면 (미설치 고급 음성 등) 소리가 안 나는 경우가 있어 언어만 지정
   const v=(IOS||plain)?null:pickVoice(lang);
   const u=new SpeechSynthesisUtterance(text);u.lang=lang==='ja'?'ja-JP':'en-US';u.rate=cfg.rate;u.pitch=1;u.volume=1;
@@ -456,7 +487,7 @@ function say(text,lang,debug,plain){
   // 탭 핸들러 안에서 동기로 speak 해야 iOS에서 소리가 남 (setTimeout 쓰면 막힘)
   if(ss.speaking||ss.pending)ss.cancel();if(ss.paused)ss.resume();ss.speak(u);
   // 1.5초 안에 시작 안 하면 음성 지정 없이 한 번 더 시도
-  if(!plain&&v)setTimeout(()=>{if(!started){ss.cancel();say(text,lang,debug,true)}},1500);
+  if(!plain&&v)setTimeout(()=>{if(!started&&!ss.speaking){ss.cancel();say(text,lang,debug,true)}},2500);
 }
 const speak=w=>say(w.word,w.lang);
 const naverUrl=w=>`https://${w.lang==='ja'?'ja':'en'}.dict.naver.com/#/search?query=${encodeURIComponent(w.word)}`;
@@ -746,7 +777,7 @@ function vLibrary(){
       if(!L.length){$('#lst').innerHTML='<div class="empty">조건에 맞는 단어가 없어요</div>';return}
       f.si=Math.min(f.si||0,L.length-1);const w=L[f.si],ex=w.examples[0],st=Math.min(f.st||0,1);
       const must=[w.note,...(w.deep?.usage?.notes||[]).slice(0,1)].filter(Boolean);
-      $('#lst').innerHTML=`<div class="card" id="sk" role="button" tabindex="0" style="margin-top:12px;--c:${col(w)};height:400px;overflow-y:auto;cursor:pointer;user-select:none">
+      $('#lst').innerHTML=`<div class="card skc" id="sk" role="button" tabindex="0" style="margin-top:12px;--c:${col(w)};height:400px;overflow-y:auto;cursor:pointer;user-select:none">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><div class="qword" style="min-width:0;overflow-wrap:anywhere">${esc(w.word)}</div><button class="ibtn" id="skp" aria-label="발음 듣기" style="margin-right:8px;flex:none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4zM15.5 8.5a5 5 0 010 7M18.5 5.5a9 9 0 010 13"/></svg></button></div>
         ${ex?`<div class="ex" style="margin-top:14px;--c:${col(w)}"><div style="display:flex;align-items:flex-start;gap:8px"><div style="flex:1;min-width:0"><p style="font-size:20px">${st===0?blank(ex.t):hl(ex.t)}</p>${st===1&&ex.tr?`<p class="muted" style="margin-top:4px;font-size:16px">${hl(ex.tr)}</p>`:''}</div><button class="ibtn" id="skx" aria-label="예문 듣기" style="margin:-6px -4px 0 0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4zM15.5 8.5a5 5 0 010 7M18.5 5.5a9 9 0 010 13"/></svg></button></div></div>`:''}
         ${st===1?`<div style="margin-top:12px;font-size:20px;font-weight:800">${esc(w.meaning)}</div>`:''}
@@ -897,7 +928,7 @@ function parseText(txt){
   return out;
 }
 /* ---------- 가져오기 전 자동 점검: AI가 만든 카드의 흔한 실수를 저장 전에 잡는다 ---------- */
-const HAN_RE=/[\u3400-\u9fff\uf900-\ufaff]/,ODD_RE=/[\u{1D400}-\u{1D7FF}\u200b-\u200f\u2028-\u202f\ufeff]/u,META_RE=/입력된|입력한|오타로|합쳤다|만들었다|확인해 주세요|필기에는|지시문/;
+const HAN_RE=/[\u3400-\u9fff\uf900-\ufaff]/,ODD_RE=/[\u{1D400}-\u{1D7FF}\u200b-\u200f\u2028-\u202f\ufeff]/u;
 function lintItems(items){
   const out=[],seen=new Set();
   items.forEach(w=>{
