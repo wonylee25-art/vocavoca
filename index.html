@@ -809,10 +809,12 @@ const DEEP_PROMPT=`너는 영어/일본어 단어 '심화학습' 카드 작성�
 const deepText=list=>DEEP_PROMPT+'\n\n대상 단어/표현 (뜻 | 품사 | 기존 예문):\n'+list.map(w=>'- '+w.word+' | '+w.meaning+' | '+label(w)+' | '+w.examples.map(e=>e.t.replace(/\[\[|\]\]/g,'')).join(' / ')).join('\n');
 const copyDeep=list=>navigator.clipboard?.writeText(deepText(list)).then(()=>toast(`${list.length}개 심화 지시문을 복사했어요 → 웹 검색 되는 AI에 붙여 넣고, 결과는 가져오기에 붙여 넣으세요`),()=>toast('복사 실패'));
 /* 심화 결과(JSON)를 기존 단어에 얹는다. 예문은 기존 + 새 예문(합쳐서 5개) */
+/* 복사 과정에서 둥근 따옴표로 바뀐 JSON도 읽는다 (원문이 그대로 파싱되면 건드리지 않음) */
+function parseJSONLoose(t){try{return JSON.parse(t)}catch(e){return JSON.parse(t.replace(/[\u201c\u201d\u201e]/g,'"').replace(/[\u2018\u2019]/g,"'"))}}
 function applyDeep(txt){
   txt=txt.trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();
   if(!/^[\[{]/.test(txt))return null;
-  let d;try{d=JSON.parse(txt)}catch(e){return null}
+  let d;try{d=parseJSONLoose(txt)}catch(e){return null}
   const arr=Array.isArray(d)?d:[d];
   if(!arr.length||!arr.every(o=>o&&typeof o.deep==='object'&&o.deep&&!o.meaning))return null;
   const S=v=>typeof v==='string'?v.trim():'',A=v=>Array.isArray(v)?v:[];
@@ -919,7 +921,7 @@ function lintItems(items){
 function parseImport(txt){
   txt=txt.trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();
   if(!/^[\[{]/.test(txt))return parseText(txt);
-  const data=JSON.parse(txt);
+  const data=parseJSONLoose(txt);
   const arr=Array.isArray(data)?data:[data];
   return arr.map((o,i)=>{
     if(!o.word||!o.meaning||!o.pos)throw new Error(`${i+1}번째 항목에 word / meaning / pos 가 없어요`);
@@ -994,16 +996,49 @@ function startReview(lang){
 /* 복습 간격(ivl)이 곧 단계(Lv). 맞힐수록 간격이 벌어지고 더 어려운 방식으로 출제, 틀리면 Lv.1로 복귀 */
 function pickMode(){
   const w=cur();if(!w)return;
-  /* 출제는 두 가지뿐: 한국어 뜻 고르기 / 예문 빈칸 답 고르기 (예문이 있으면 번갈아) */
-  const mode=w.examples.length&&w.reviews%2?'cloze_c':'choice';
+  /* 출제는 두 가지뿐: 한국어 뜻 고르기 / 예문 빈칸 답 고르기 (예문이 있으면 무작위로 섞음) */
+  const canPart=w.lang==='en'&&isPhrase(w)&&w.core&&PREPS.includes(w.core.toLowerCase())&&partText(w).includes('＿＿＿');
+  const mode=canPart&&Math.random()<.1?'part':w.examples.length&&Math.random()<.5?'cloze_c':'choice';   /* 핵심 전치사 채우기는 구동사·전치사구에서 약 10% */
   sess.mode=mode;
-  sess.exi=w.examples.length?w.reviews%w.examples.length:0;   /* 예문 돌려 가며 출제 */
-  let peers=words.filter(x=>x.lang===w.lang&&x.id!==w.id&&isPhrase(x)===isPhrase(w));
-  if(peers.length<3)peers=words.filter(x=>x.lang===w.lang&&x.id!==w.id);
-  const mk=(c,f)=>{const o=[c];shuffle(peers).forEach(x=>{const v=f(x);if(o.length<4&&v&&!o.includes(v))o.push(v)});return shuffle(o)};
+  sess.exi=w.examples.length?Math.random()*w.examples.length|0:0;   /* 예문도 무작위 */
+  /* 오답은 정답과 품사(큰 갈래)가 같은 것 중에서, 뜻·꼴이 비슷한 순으로 고른다 (품사만 보고 정답을 못 찍게) */
+  const peers=words.filter(x=>x.lang===w.lang&&x.id!==w.id&&!(w.synonyms||[]).some(s=>norm(s)===norm(x.word)));
+  const grp=x=>isPhrase(x)?'ph':/^(n_|ja_n$)/.test(x.pos)?'n':/^(v_|ja_v)/.test(x.pos)?'v':/^(adj|ja_i$|ja_na$)/.test(x.pos)?'a':/adv$/.test(x.pos)?'d':'o';
+  const bg=t=>{t=t.replace(/[\s()~·,./]/g,'');const s=new Set();for(let i=0;i<t.length-1;i++)s.add(t.slice(i,i+2));for(const c of t)s.add(c);return s};
+  const sim=(a,b)=>{a=bg(a);b=bg(b);let n=0;a.forEach(k=>{if(b.has(k))n++});return n/Math.sqrt((a.size*b.size)||1)};
+  const mk=(c,f,kind)=>{
+    const sc=x=>{const v=f(x);if(!v||v===c)return -1;
+      let s=(x.pos===w.pos?3:0)+(grp(x)===grp(w)?4:0);
+      s+=kind==='meaning'?sim(c,v)*4:(c.slice(-2)===v.slice(-2)?2:0)+(c[0]===v[0]?1:0)+sim(c,v)*2-Math.abs(c.length-v.length)*.15;
+      return s+Math.random()*1.5};
+    const ranked=peers.map(x=>({v:f(x),s:sc(x)})).filter(r=>r.s>=0).sort((a,b)=>b.s-a.s);
+    const o=[c];ranked.forEach(r=>{if(o.length<4&&!o.includes(r.v))o.push(r.v)});return shuffle(o)};
+  const fcls=t=>/ing$/.test(t)?'ing':/ed$/.test(t)?'ed':/[^s]s$/.test(t)?'s':'base';
+  const inflect=(x,k)=>{
+    const forms=[x.word,...x.examples.map((_,i)=>ans(x,i))].filter(t=>!/\s/.test(t));
+    const f=forms.find(t=>fcls(t)===k);if(f||k==='base'||x.lang!=='en')return f||null;
+    const b=x.word;if(/\s/.test(b)||/[^aeiou][aeiou][bdfgklmnprt]$/.test(b))return null;   /* 자음 겹침(stop→stopped) 가능성은 건너뜀 */
+    const y=/[^aeiou]y$/.test(b);
+    return k==='ing'?(/[^e]e$/.test(b)?b.slice(0,-1):b)+'ing':k==='ed'?(b.endsWith('e')?b+'d':y?b.slice(0,-1)+'ied':b+'ed'):/(s|x|z|ch|sh)$/.test(b)?b+'es':y?b.slice(0,-1)+'ies':b+'s'};
+  const sameForm=(w,c)=>{
+    if(w.lang!=='en'||/\s/.test(c)||isPhrase(w))return null;
+    const k=fcls(c);
+    const forms=peers.filter(x=>x.pos===w.pos&&!isPhrase(x)).map(x=>inflect(x,w.lang==='en'?k:'base')).filter(v=>v&&v!==c);
+    const u=[...new Set(forms)];
+    return u.length>=3?shuffle([c,...shuffle(u).slice(0,3)]):null};
   sess.opts=null;sess.correct=null;
-  if(mode==='choice'){sess.correct=w.meaning;sess.opts=mk(w.meaning,x=>x.meaning)}
-  else if(mode==='cloze_c'){sess.correct=ans(w,sess.exi);sess.opts=mk(sess.correct,x=>ans(x,0))}
+  if(mode==='choice'){sess.correct=w.meaning;sess.opts=mk(w.meaning,x=>x.meaning,'meaning')}
+  else if(mode==='part'){
+    const c=w.core.toLowerCase();
+    /* 같은 구에서 흔히 헷갈리는 전치사(다른 구동사들의 핵심어)를 먼저, 모자라면 PREPS에서 */
+    const near=shuffle([...new Set(peers.filter(x=>x.core).map(x=>x.core.toLowerCase()))]).filter(p=>p!==c&&PREPS.includes(p));
+    const o=[c];[...near,...shuffle(PREPS)].forEach(p=>{if(o.length<4&&!o.includes(p))o.push(p)});
+    sess.correct=c;sess.opts=shuffle(o)}
+  else if(mode==='cloze_c'){
+    sess.correct=ans(w,sess.exi);
+    /* 절반은 '품사·활용형이 전부 같은' 보기 → 문법으론 못 가리고 뜻·쓰임으로 골라야 함 (보기가 모자라면 위의 일반 방식) */
+    const same=Math.random()<.5&&sameForm(w,sess.correct);
+    sess.opts=same||mk(sess.correct,x=>ans(x,0),'form')}
   sess.state='ask';sess.picked=null;sess.right=null;sess.mineText='';
 }
 function nextIvl(w,conf){
@@ -1055,7 +1090,7 @@ function vReview(){
     body=`<div style="font-size:26px;font-weight:800">${esc(w.meaning)}</div><div class="muted" style="margin-top:6px">${hint}</div>${input(w.lang==='ja'?'일본어로 쓰기 (한자 또는 히라가나)':'영어로 쓰기')}`;
   }
   else if(mode==='rev')body=`<div style="font-size:26px;font-weight:800">${esc(w.meaning)}</div><div class="muted" style="margin-top:6px">${isPhrase(w)?'알맞은 표현을':'알맞은 단어를'} 고르세요</div>${opts(w.word)}`;
-  else if(mode==='part')body=`<div class="qword" style="font-size:28px">${esc(partText(w))}</div><div style="margin-top:6px;font-weight:700">${esc(w.meaning)}</div><div class="muted">빈칸에 들어갈 말을 고르세요</div>${opts(w.core)}`;
+  else if(mode==='part')body=`<div class="qword" style="font-size:28px">${esc(partText(w))}</div><div style="margin-top:6px;font-weight:700">${esc(w.meaning)}</div><div class="muted">빈칸에 들어갈 말을 고르세요</div>${opts(w.core.toLowerCase())}`;
   else if(mode==='produce')body=`<div class="qword">${esc(w.word)}</div>${rd}<div style="font-size:18px;font-weight:700;margin-top:8px">${esc(w.meaning)}</div>
     <div class="muted" style="margin:10px 0 8px">이 단어를 넣어 <b>나만의 문장</b>을 써 보세요. 내 이야기일수록 오래 기억돼요.</div>
     <textarea id="ta" style="min-height:90px;font-family:inherit;font-size:16px" ${dis}>${esc(sess.mineText)}</textarea><div class="row"><button class="btn" id="sb" ${dis}>제출</button></div>`;
