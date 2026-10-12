@@ -485,7 +485,11 @@ function say(text,lang,debug,plain,waited){
   if(ss.speaking||ss.pending)ss.cancel();if(ss.paused)ss.resume();ss.speak(u);
   // 1.5초 안에 시작 안 하면 음성 지정 없이 한 번 더 시도
   if(!plain&&v)setTimeout(()=>{if(!started&&!ss.speaking){ss.cancel();say(text,lang,debug,true)}},2500);
+  // iOS/iPadOS: 엔진이 멈춰 있으면(cancel 직후 등) 조용히 실패하므로 한 번 더 시도
+  if(IOS&&!say.retried)setTimeout(()=>{if(!started&&!ss.speaking){say.retried=true;ss.cancel();setTimeout(()=>{say.retried=false;say(text,lang,debug,true,true)},120)}},1200);
 }
+// iOS/iPadOS: 첫 터치에서 무음 발화로 음성 엔진을 깨워 둠 (이후 재생이 막히지 않게)
+if(IOS&&'speechSynthesis' in window){const wake=()=>{document.removeEventListener('touchend',wake,true);document.removeEventListener('click',wake,true);try{const u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u)}catch(e){}};document.addEventListener('touchend',wake,true);document.addEventListener('click',wake,true)}
 const speak=w=>say(w.word,w.lang);
 const naverUrl=w=>`https://${w.lang==='ja'?'ja':'en'}.dict.naver.com/#/search?query=${encodeURIComponent(w.word)}`;
 const naverChip=w=>`<a class="chip gray" href="${naverUrl(w)}" target="_blank" rel="noopener">🔊 네이버 사전 ↗</a>`;
