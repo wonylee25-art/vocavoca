@@ -485,8 +485,8 @@ let _tts;
 function sayAudio(text,lang,debug){
   if(!_tts){_tts=new Audio();_tts.setAttribute('playsinline','')}
   const a=_tts;let failed=false;
-  const fb=()=>{if(failed)return;failed=true;a.onerror=a.onended=a.onplaying=null;say(text,lang,debug,false,false,true)};
-  a.onerror=fb;a.onplaying=()=>{if(debug)toast('재생 중: 오디오 TTS · '+lang)};
+  const fb=e=>{if(failed)return;failed=true;say.why=(e&&e.name)||(e&&e.type)||(a.error?'code'+a.error.code:'timeout');a.onerror=a.onended=a.onplaying=null;say(text,lang,debug,false,false,true)};
+  a.onerror=()=>fb();a.onplaying=()=>{if(debug)toast('재생 중: 오디오 TTS · '+lang)};
   a.src='https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl='+(lang==='ja'?'ja':'en')+'&q='+encodeURIComponent(text);
   a.playbackRate=cfg.rate>=.5?Math.min(1,cfg.rate+.1):1;
   const pr=a.play();pr&&pr.catch&&pr.catch(fb);
@@ -506,7 +506,7 @@ function say(text,lang,debug,plain,waited,noAudio){
   const u=new SpeechSynthesisUtterance(text);u.lang=lang==='ja'?'ja-JP':'en-US';u.rate=cfg.rate;u.pitch=1;u.volume=1;
   if(v){u.voice=v;u.lang=v.lang.replace('_','-')}
   let started=false;
-  u.onstart=()=>{started=true;if(debug)toast('재생 중: '+(v?v.name:'기본 음성')+' · '+u.lang)};
+  u.onstart=()=>{started=true;if(debug)toast('재생 중: '+(v?v.name:'기본 음성')+' · '+u.lang+(say.why?' · 오디오 실패: '+say.why:''))};
   u.onerror=e=>{if(e.error==='canceled'||e.error==='interrupted')return;if(!plain&&v)return say(text,lang,debug,true,false,true);toast('재생 실패: '+(e.error||'알 수 없음'))};
   // 탭 핸들러 안에서 동기로 speak 해야 iOS에서 소리가 남 (setTimeout 쓰면 막힘)
   if(IOS)keepAudio();
