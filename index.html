@@ -370,6 +370,7 @@ mitigate
 const PROMPT=`너는 영어/일본어 단어장 카드 생성기야.
 첨부한 이미지(또는 텍스트)에서 내가 밑줄·형광펜·손글씨로 표시한 단어/표현만 골라서
 아래 JSON 배열 형식으로만 출력해. 설명 문장은 쓰지 마.
+출력 규칙: 답변 전체를 JSON 배열 하나(첫 글자 [ , 마지막 글자 ])로만 채워. 앞뒤에 인사·진행 설명·요약을 붙이지 마. 웹 검색을 했더라도 검색 과정은 쓰지 마.
 
 공통 규칙
 - lang: "en" 또는 "ja"
@@ -845,6 +846,7 @@ const copyEnrich=list=>navigator.clipboard?.writeText(enrichText(list)).then(()=
 /* ---------- 심화 카드 보강 지시문 ---------- */
 const DEEP_PROMPT=`너는 영어/일본어 단어 '심화학습' 카드 작성기야. 아래 단어들은 내가 자주 틀리거나 헷갈려 한 단어야. 단순 암기가 아니라 이해로 기억하게 해 줘.
 아래 JSON 배열 형식으로만 출력하고 설명 문장은 쓰지 마. 설명은 한국어(영영 풀이·예문 제외).
+출력 규칙: 웹 검색 중에는 '검색해 볼게', '접속이 막혀서 다른 사이트를 볼게' 같은 진행 설명을 어디에도 쓰지 마. 검색을 모두 끝낸 뒤, 답변 전체를 JSON 배열 하나(첫 글자 [ , 마지막 글자 ])로만 채워. 앞뒤에 인사·요약·출처 목록을 붙이지 마.
 
 가장 중요한 규칙
 - 반드시 웹 검색으로 실제 사전(영어: Etymonline, Wiktionary, Cambridge, Merriam-Webster / 일본어: 国語辞典, Wiktionary 등)을 찾아보고, 거기서 확인한 내용만 써. 기억에만 의존하지 마.
@@ -873,8 +875,16 @@ const copyDeep=list=>navigator.clipboard?.writeText(deepText(list)).then(()=>toa
 /* 심화 결과(JSON)를 기존 단어에 얹는다. 예문은 기존 + 새 예문(합쳐서 5개) */
 /* 복사 과정에서 둥근 따옴표로 바뀐 JSON도 읽는다 (원문이 그대로 파싱되면 건드리지 않음) */
 function parseJSONLoose(t){try{return JSON.parse(t)}catch(e){return JSON.parse(t.replace(/[\u201c\u201d\u201e]/g,'"').replace(/[\u2018\u2019]/g,"'"))}}
+/* AI 답변을 통째로 복사해도 앞뒤 설명은 버리고 JSON 배열만 꺼낸다 */
+function cleanPaste(t){
+  t=t.trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();
+  if(/^[\[{]/.test(t))return t;
+  const a=t.search(/\[\s*\{/),b=t.lastIndexOf(']');
+  if(a>=0&&b>a){const c=t.slice(a,b+1);try{parseJSONLoose(c);return c}catch(e){}}
+  return t;
+}
 function applyDeep(txt){
-  txt=txt.trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();
+  txt=cleanPaste(txt);
   if(!/^[\[{]/.test(txt))return null;
   let d;try{d=parseJSONLoose(txt)}catch(e){return null}
   const arr=Array.isArray(d)?d:[d];
@@ -981,8 +991,11 @@ function lintItems(items){
   return out;
 }
 function parseImport(txt){
-  txt=txt.trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();
-  if(!/^[\[{]/.test(txt))return parseText(txt);
+  txt=cleanPaste(txt);
+  if(!/^[\[{]/.test(txt)){
+    if(/"(?:lang|word|deep)"\s*:/.test(txt))throw new Error('JSON 일부만 붙여 넣은 것 같아요. 맨 앞 [ 부터 맨 끝 ] 까지 통째로 붙여 넣어 주세요');
+    return parseText(txt);
+  }
   const data=parseJSONLoose(txt);
   const arr=Array.isArray(data)?data:[data];
   return arr.map((o,i)=>{
