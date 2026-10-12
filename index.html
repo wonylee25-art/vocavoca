@@ -466,6 +466,20 @@ function pickVoice(lang){
 }
 if('speechSynthesis' in window){speechSynthesis.getVoices();speechSynthesis.onvoiceschanged=()=>{if(route==='settings')render()}}
 const IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+// iOS/iPadOS: 음성 합성은 기본적으로 '벨소리' 채널이라 무음 스위치에 막힘 → 오디오 세션을 '재생'으로 바꾸고 무음 오디오를 함께 재생해 미디어 채널로 출력
+let _sil;
+function keepAudio(){
+  try{navigator.audioSession&&(navigator.audioSession.type='playback')}catch(e){}
+  try{
+    if(!_sil){
+      const n=16000,b=new DataView(new ArrayBuffer(44+n));const w=(o,t)=>[...t].forEach((c,i)=>b.setUint8(o+i,c.charCodeAt(0)));
+      w(0,'RIFF');b.setUint32(4,36+n,true);w(8,'WAVEfmt ');b.setUint32(16,16,true);b.setUint16(20,1,true);b.setUint16(22,1,true);b.setUint32(24,8000,true);b.setUint32(28,8000,true);b.setUint16(32,1,true);b.setUint16(34,8,true);w(36,'data');b.setUint32(40,n,true);
+      for(let i=0;i<n;i++)b.setUint8(44+i,128);
+      _sil=new Audio(URL.createObjectURL(new Blob([b],{type:'audio/wav'})));_sil.setAttribute('playsinline','');
+    }
+    _sil.currentTime=0;const pr=_sil.play();pr&&pr.catch&&pr.catch(()=>{});
+  }catch(e){}
+}
 function say(text,lang,debug,plain,waited){
   if(!('speechSynthesis' in window))return toast('이 브라우저는 음성을 지원하지 않아요');
   const ss=speechSynthesis;
@@ -482,6 +496,7 @@ function say(text,lang,debug,plain,waited){
   u.onstart=()=>{started=true;if(debug)toast('재생 중: '+(v?v.name:'기본 음성')+' · '+u.lang)};
   u.onerror=e=>{if(e.error==='canceled'||e.error==='interrupted')return;if(!plain&&v)return say(text,lang,debug,true);toast('재생 실패: '+(e.error||'알 수 없음'))};
   // 탭 핸들러 안에서 동기로 speak 해야 iOS에서 소리가 남 (setTimeout 쓰면 막힘)
+  if(IOS)keepAudio();
   if(ss.speaking||ss.pending)ss.cancel();if(ss.paused)ss.resume();ss.speak(u);
   // 1.5초 안에 시작 안 하면 음성 지정 없이 한 번 더 시도
   if(!plain&&v)setTimeout(()=>{if(!started&&!ss.speaking){ss.cancel();say(text,lang,debug,true)}},2500);
