@@ -261,22 +261,22 @@ const TYPES = {
   v_t:{lang:'en',label:'타동사',color:'#c026d3',hint:'목적어 필요 · 자동사(초록)와 보색'},
   v_i:{lang:'en',label:'자동사',color:'#15803d',hint:'목적어 없이 사용 · 타동사(자주)와 보색'},
   v_ti:{lang:'en',label:'자·타동사',color:'var(--blk)',on:'var(--blk-on)',hint:'둘 다 가능 (검정)'},
-  adj:{lang:'en',label:'형용사',color:'#0891b2',hint:''},
-  adv:{lang:'en',label:'부사',color:'#94a3b8',hint:''},
-  ph_v:{lang:'en',kind:'phrase',label:'구동사',color:'#6b7280',hint:'give up · look forward to'},
+  adj:{lang:'en',label:'형용사',color:'#6b7280',hint:''},
+  adv:{lang:'en',label:'부사',color:'#6b7280',hint:''},
+  ph_v:{lang:'en',kind:'phrase',label:'구동사',color:'#6b7280',hint:'give up · look forward to · 뒤에 동사원형이 오면 + do 표시'},
   ph_prep:{lang:'en',kind:'phrase',label:'전치사구',color:'#6b7280',hint:'in charge of · on behalf of'},
   ph_id:{lang:'en',kind:'phrase',label:'숙어·관용구',color:'#6b7280',hint:'break the ice'},
-  other:{lang:'en',label:'기타',color:'#78716c',hint:'문장·패턴 등'},
+  other:{lang:'en',label:'기타',color:'#6b7280',hint:'문장·패턴 등'},
   /* 일본어 */
-  ja_n:{lang:'ja',label:'명사',color:'#2f6df6',hint:''},
-  ja_v1:{lang:'ja',label:'1그룹 동사',color:'#ef4444',hint:'五段 · う단으로 활용 (行く・飲む)'},
-  ja_v2:{lang:'ja',label:'2그룹 동사',color:'#f59e0b',hint:'一段 · る를 떼고 활용 (食べる・見る)'},
-  ja_v3:{lang:'ja',label:'3그룹 동사',color:'#8b5cf6',hint:'불규칙 · する・来る'},
-  ja_i:{lang:'ja',label:'い형용사',color:'#10b981',hint:'〜い로 끝남 (高い)'},
-  ja_na:{lang:'ja',label:'な형용사',color:'#14b8a6',hint:'〜な + 명사 (静かな)'},
-  ja_adv:{lang:'ja',label:'부사',color:'#0ea5e9',hint:''},
+  ja_n:{lang:'ja',label:'명사',color:'#6b7280',hint:''},
+  ja_v1:{lang:'ja',label:'1그룹 동사',color:'#6b7280',hint:'五段 · う단으로 활용 (行く・飲む)'},
+  ja_v2:{lang:'ja',label:'2그룹 동사',color:'#6b7280',hint:'一段 · る를 떼고 활용 (食べる・見る)'},
+  ja_v3:{lang:'ja',label:'3그룹 동사',color:'#6b7280',hint:'불규칙 · する・来る'},
+  ja_i:{lang:'ja',label:'い형용사',color:'#6b7280',hint:'〜い로 끝남 (高い)'},
+  ja_na:{lang:'ja',label:'な형용사',color:'#6b7280',hint:'〜な + 명사 (静かな)'},
+  ja_adv:{lang:'ja',label:'부사',color:'#6b7280',hint:''},
   ja_ph:{lang:'ja',kind:'phrase',label:'표현·문형',color:'#6b7280',hint:'관용구·문형'},
-  ja_other:{lang:'ja',label:'기타',color:'#94a3b8',hint:'표현·문장 등'}
+  ja_other:{lang:'ja',label:'기타',color:'#6b7280',hint:'표현·문장 등'}
 };
 const typesOf=l=>Object.entries(TYPES).filter(([k,t])=>t.lang===l);
 const LANG={en:'영어',ja:'일본어'};
@@ -394,6 +394,7 @@ const PROMPT=`너는 영어/일본어 단어장 카드 생성기야.
   · word에 표현 전체, pattern에 문형(예: be in charge of + 명사)
   · 전치사가 핵심이면 core에 그 전치사 한 단어(예: of). 아니면 빈 문자열
   · 구동사는 sep에 분리 가능/불가 (예: 분리 가능, 대명사는 give it up)
+  · 뒤에 동사원형(to do)이 오는 표현은 pattern에 '+ 동사원형'이라고 쓸 것(예: be able to + 동사원형). 명사·-ing가 오면 '+ 명사'
 - reading: IPA 발음기호
 
 일본어(lang:"ja")의 pos
@@ -446,10 +447,10 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const hl=t=>esc(t).replace(/\[\[(.+?)\]\]/g,'<mark>$1</mark>');
 const blank=t=>esc(t).replace(/\[\[(.+?)\]\]/g,'<span class="blank">＿＿＿＿</span>');
 const ans=(w,i=0)=>{const e=w.examples[i];const m=e?[...e.t.matchAll(/\[\[(.+?)\]\]/g)].map(x=>x[1]):[];return m.length?m.join(' '):w.word};   /* 빈칸이 여러 곳(put ＿ away)이면 전부 합쳐서 정답으로 */
-/* 구동사 색: 목적어를 받으면(분리 가능 · pattern에 '+ 목적어/명사/사람…'; 괄호 안 선택 요소는 제외) 타동사 색, 안 받으면 자동사 색 */
-const tkey=w=>w.pos!=='ph_v'?w.pos:(/^분리 가능/.test(w.sep||'')||/\+/.test((w.pattern||'').replace(/\([^)]*\)/g,'')))?'v_t':'v_i';
-const col=w=>TYPES[tkey(w)]?.color||'#94a3b8';
-const label=w=>(TYPES[w.pos]?.label||'기타');
+/* 숙어·표현·구동사: 뒤에 동사원형(to do)이 오면 칩에 '+ do' 표시. 명사/-ing가 오는 건 표시 없음. 색은 회색 */
+const phDo=w=>w.lang==='en'&&/동사원형|\bto V\b|\bV\b/.test((w.pattern||'').replace(/\([^)]*\)/g,''));
+const col=w=>(isPhrase(w)?null:TYPES[w.pos]?.color)||'#6b7280';
+const label=w=>(TYPES[w.pos]?.label||'기타')+(isPhrase(w)&&phDo(w)?' + do':'');
 const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),1800)}
 const BAD_VOICE=/^(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Fred|Junior|Ralph|Kathy|Grandma|Grandpa|Samantha|Kyoko)(\s|$)/;
@@ -561,7 +562,7 @@ if(!exams||!Array.isArray(exams.toeic)||!Array.isArray(exams.jlpt))exams={toeic:
 const saveExams=()=>{try{localStorage.setItem(EKEY,JSON.stringify(exams))}catch(e){}};
 const saveLog=()=>{try{localStorage.setItem(LKEY,JSON.stringify(log))}catch(e){}syncSoon()};
 function streak(){let d=new Date(),c=0;if(!(log[dkey(d)]?.n))d.setDate(d.getDate()-1);while(log[dkey(d)]?.n>0){c++;d.setDate(d.getDate()-1)}return c}
-const chipOf=w=>`<span class="chip solid" style="--c:${col(w)};--on:${TYPES[tkey(w)]?.on||'#fff'}">${label(w)}</span>`;
+const chipOf=w=>`<span class="chip solid" style="--c:${col(w)};--on:${TYPES[w.pos]?.on||'#fff'}">${label(w)}</span>`;
 
 /* ---------- 라우팅 ---------- */
 function go(r){if(r.startsWith('test-')){tl=r.slice(5);r='home'}try{if(/^(test-|lib-)/.test(arguments[0])||/^(import|settings)$/.test(r))localStorage.setItem('voca-tab',arguments[0])}catch(e){}if(r==='home'){if(sess&&sess.lang===tl&&sess.i<sess.queue.length)r='review';else if(words.some(w=>!w.incomplete&&w.lang===tl)){startReview(tl);return}}if(r==='library')r='lib-'+filter.lang;if(r.startsWith('lib-')){filter.lang=r.slice(4);filter.pos='all';filter.rank=null;r='library'}route=r;const tab=r==='card'?'lib-'+filter.lang:r==='review'||r==='home'?'test-'+tl:r==='library'?'lib-'+filter.lang:r==='stats'?'':r;document.querySelectorAll('.nav [data-go]').forEach(b=>b.classList.toggle('on',b.dataset.go===tab));render();scrollTo(0,0)}
