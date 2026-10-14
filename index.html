@@ -263,10 +263,12 @@ const TYPES = {
   v_ti:{lang:'en',label:'자·타동사',color:'var(--blk)',on:'var(--blk-on)',hint:'둘 다 가능 (검정)'},
   adj:{lang:'en',label:'형용사',color:'#6b7280',hint:''},
   adv:{lang:'en',label:'부사',color:'#6b7280',hint:''},
+  prep:{lang:'en',label:'전치사',color:'#6b7280',hint:'뒤에 명사가 옴 (despite · during)'},
+  conj:{lang:'en',label:'접속사',color:'#6b7280',hint:'뒤에 절이 옴 (although · whereas)'},
   ph_v:{lang:'en',kind:'phrase',label:'구동사',color:'#6b7280',hint:'give up · look forward to · 뒤에 동사원형이 오면 + do 표시'},
   ph_prep:{lang:'en',kind:'phrase',label:'전치사구',color:'#6b7280',hint:'in charge of · on behalf of'},
   ph_id:{lang:'en',kind:'phrase',label:'숙어·관용구',color:'#6b7280',hint:'break the ice'},
-  other:{lang:'en',label:'기타',color:'#6b7280',hint:'문장·패턴 등'},
+  other:{lang:'en',label:'기타',color:'#6b7280',hint:'위에 안 맞는 문장·패턴 등'},
   /* 일본어 */
   ja_n:{lang:'ja',label:'명사',color:'#6b7280',hint:''},
   ja_v1:{lang:'ja',label:'1그룹 동사',color:'#6b7280',hint:'五段 · う단으로 활용 (行く・飲む)'},
@@ -387,7 +389,9 @@ const PROMPT=`너는 영어/일본어 단어장 카드 생성기야.
 - source: 책 제목 · 페이지
 
 영어(lang:"en")의 pos
-- n_c(가산명사) n_u(불가산명사) v_t(타동사) v_i(자동사) v_ti(자·타동사 둘 다) adj(형용사) adv(부사) other
+- n_c(가산명사) n_u(불가산명사) v_t(타동사) v_i(자동사) v_ti(자·타동사 둘 다) adj(형용사) adv(부사) prep(전치사) conj(접속사) other
+  · 복합명사(예: ice cream, press release)는 other가 아니라 n_c 또는 n_u로, 접속사·전치사는 conj·prep으로 분류. other는 문장·패턴처럼 어디에도 안 맞을 때만
+  · 전치사와 접속사로 둘 다 쓰는 단어(예: before, after, since, until)는 한 카드에 섞지 말고 prep 카드와 conj 카드를 따로 만들 것. 예문 3개도 그 쓰임으로만 쓰고, note에 뒤에 명사가 오는지 절이 오는지 적을 것
 - 뜻이 여러 개로 갈리는 단어(예: run = 달리다(자동사) / 운영하다(타동사))는 한 카드에 섞지 말고 뜻마다 카드를 따로 만들 것. 각 카드의 pos는 그 뜻에 맞게 v_i 또는 v_t로, examples 3개도 그 뜻으로만 쓸 것.
   v_ti는 자동사/타동사로 쓰여도 뜻이 같은 경우(예: open)에만 사용
 - 표현은 단어와 똑같이 카드 1장: ph_v(구동사) ph_prep(전치사구) ph_id(숙어·관용구)
