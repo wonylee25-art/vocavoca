@@ -265,10 +265,7 @@ const TYPES = {
   adv:{lang:'en',label:'부사',color:'#6b7280',hint:''},
   prep:{lang:'en',label:'전치사',color:'#6b7280',hint:'뒤에 명사가 옴 (despite · during)'},
   conj:{lang:'en',label:'접속사',color:'#6b7280',hint:'뒤에 절이 옴 (although · whereas)'},
-  ph_v:{lang:'en',kind:'phrase',label:'구동사',color:'#6b7280',hint:'give up · look forward to · 뒤에 동사원형이 오면 + do 표시'},
-  ph_prep:{lang:'en',kind:'phrase',label:'전치사구',color:'#6b7280',hint:'in charge of · on behalf of'},
-  ph_id:{lang:'en',kind:'phrase',label:'숙어·관용구',color:'#6b7280',hint:'break the ice'},
-  other:{lang:'en',label:'기타',color:'#6b7280',hint:'위에 안 맞는 문장·패턴 등'},
+  other:{lang:'en',label:'기타',color:'#6b7280',hint:'위에 안 맞는 문장 등'},
   /* 일본어 */
   ja_n:{lang:'ja',label:'명사',color:'#6b7280',hint:''},
   ja_v1:{lang:'ja',label:'1그룹 동사',color:'#6b7280',hint:'五段 · う단으로 활용 (行く・飲む)'},
@@ -338,10 +335,10 @@ const SEED=[
  {id:18,lang:'en',word:'look forward to',reading:'',pos:'ph_v',meaning:'~을 고대하다',pattern:'look forward to + 명사/-ing',sep:'분리 불가',core:'to',
   examples:[{t:'I\'m [[looking forward to]] the weekend.',tr:'주말이 정말 기다려져요.'},{t:'We [[look forward to]] meeting you.',tr:'만나 뵙기를 기대합니다.'},{t:'She is really [[looking forward to]] her trip.',tr:'그녀는 여행을 몹시 기대하고 있다.'}],
   collocations:[],synonyms:['anticipate'],note:'to는 전치사 → 뒤에 -ing (look forward to see ✕)',mnemonic:'앞(forward)을 바라본다(look) → 다가올 일을 고대',source:'Idioms & Phrases · Unit 1',due:0,reps:0,lapses:0},
- {id:19,lang:'en',word:'in charge of',reading:'',pos:'ph_prep',meaning:'~을 담당하는, 책임지는',pattern:'be in charge of + 명사',sep:'',core:'of',
+ {id:19,lang:'en',word:'in charge of',reading:'',pos:'ph_id',meaning:'~을 담당하는, 책임지는',pattern:'be in charge of + 명사',sep:'',core:'of',
   examples:[{t:'She is [[in charge of]] the marketing team.',tr:'그녀는 마케팅팀을 맡고 있다.'},{t:'Who\'s [[in charge of]] this project?',tr:'이 프로젝트는 누가 책임지나요?'},{t:'He was put [[in charge of]] the budget.',tr:'그는 예산 담당이 되었다.'}],
   collocations:[],synonyms:['responsible for'],note:'in charge of(내가 맡은 것) ↔ in the charge of(~의 보호 아래)와 구분',source:'Idioms & Phrases · Unit 1',due:0,reps:0,lapses:0},
- {id:20,lang:'en',word:'on behalf of',reading:'',pos:'ph_prep',meaning:'~을 대표하여, ~을 대신하여',pattern:'on behalf of + 사람/단체',sep:'',core:'on',
+ {id:20,lang:'en',word:'on behalf of',reading:'',pos:'ph_id',meaning:'~을 대표하여, ~을 대신하여',pattern:'on behalf of + 사람/단체',sep:'',core:'on',
   examples:[{t:'I\'m writing [[on behalf of]] the whole team.',tr:'팀 전체를 대표해 이 글을 씁니다.'},{t:'She accepted the award [[on behalf of]] her father.',tr:'그녀는 아버지를 대신해 상을 받았다.'},{t:'Thank you [[on behalf of]] everyone here.',tr:'여기 모두를 대신해 감사드립니다.'}],
   collocations:[],synonyms:['for','representing'],note:'on behalf of + 대신 해 주는 대상',source:'Idioms & Phrases · Unit 1',due:3,reps:2,lapses:0},
  {id:21,lang:'en',word:'break the ice',reading:'',pos:'ph_id',meaning:'어색한 분위기를 깨다',pattern:'break the ice (with + 사람)',sep:'',core:'',
@@ -394,7 +391,8 @@ const PROMPT=`너는 영어/일본어 단어장 카드 생성기야.
   · 전치사와 접속사로 둘 다 쓰는 단어(예: before, after, since, until)는 한 카드에 섞지 말고 prep 카드와 conj 카드를 따로 만들 것. 예문 3개도 그 쓰임으로만 쓰고, note에 뒤에 명사가 오는지 절이 오는지 적을 것
 - 뜻이 여러 개로 갈리는 단어(예: run = 달리다(자동사) / 운영하다(타동사))는 한 카드에 섞지 말고 뜻마다 카드를 따로 만들 것. 각 카드의 pos는 그 뜻에 맞게 v_i 또는 v_t로, examples 3개도 그 뜻으로만 쓸 것.
   v_ti는 자동사/타동사로 쓰여도 뜻이 같은 경우(예: open)에만 사용
-- 표현은 단어와 똑같이 카드 1장: ph_v(구동사) ph_prep(전치사구) ph_id(숙어·관용구)
+- 여러 단어로 된 표현(구동사·숙어·관용구)도 카드 1장이며, 별도 분류 없이 그 표현 전체의 품사로 분류
+  · give up, look forward to → v_t(타동사) / show up → v_i(자동사) / in charge of → adj / how soon → adv / on behalf of → prep / a piece of cake → n_c
   · word에 표현 전체, pattern에 문형(예: be in charge of + 명사)
   · 전치사가 핵심이면 core에 그 전치사 한 단어(예: of). 아니면 빈 문자열
   · 구동사는 sep에 분리 가능/불가 (예: 분리 가능, 대명사는 give it up)
@@ -442,7 +440,7 @@ function splitParen(w){
 }
 const META_RE=/입력하신|입력된|입력한|입력 목록|오타|합쳤다|만들었다|작성함|확인해 주세요|필기에는|지시문/;
 const scrubMeta=t=>typeof t!=='string'?t:t.split(/(?<=[.!?。])\s+/).filter(x=>!META_RE.test(x)).join(' ').trim();
-function fixWords(){words.forEach(w=>{splitParen(w);w.note=scrubMeta(w.note);w.mnemonic=scrubMeta(w.mnemonic);if(w.deep?.usage?.notes)w.deep.usage.notes=w.deep.usage.notes.map(scrubMeta).filter(Boolean);if(w.note&&/^토익 빈출/.test(w.note))w.note='';if(w.reviews==null)w.reviews=(w.reps||0)+(w.lapses||0);if(!w.mine)w.mine=[];if(w.ivl==null)w.ivl=w.reps?[1,3,7,14,30,60][Math.min(w.reps-1,5)]:0;if(w.hardCount==null)w.hardCount=0;if(!w.examples)w.examples=[];if(!w.dueAt)w.dueAt=addDays(w.due||0);w.due=daysUntil(w.dueAt)})}
+function fixWords(){words.forEach(w=>{convOld(w);splitParen(w);w.note=scrubMeta(w.note);w.mnemonic=scrubMeta(w.mnemonic);if(w.deep?.usage?.notes)w.deep.usage.notes=w.deep.usage.notes.map(scrubMeta).filter(Boolean);if(w.note&&/^토익 빈출/.test(w.note))w.note='';if(w.reviews==null)w.reviews=(w.reps||0)+(w.lapses||0);if(!w.mine)w.mine=[];if(w.ivl==null)w.ivl=w.reps?[1,3,7,14,30,60][Math.min(w.reps-1,5)]:0;if(w.hardCount==null)w.hardCount=0;if(!w.examples)w.examples=[];if(!w.dueAt)w.dueAt=addDays(w.due||0);w.due=daysUntil(w.dueAt)})}
 var SY=null;const syncSoon=()=>{if(SY)SY.soon()};
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(words))}catch(e){}syncSoon()};
 let tl='en',route='home', filter={lang:'en',pos:'all',q:'',src:'',mode:(()=>{try{return localStorage.getItem('voca-libmode')==='skim'?'skim':'list'}catch(e){return 'list'}})()}, importState={text:'',items:null,err:''}, sess=null;
@@ -451,10 +449,22 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const hl=t=>esc(t).replace(/\[\[(.+?)\]\]/g,'<mark>$1</mark>');
 const blank=t=>esc(t).replace(/\[\[(.+?)\]\]/g,'<span class="blank">＿＿＿＿</span>');
 const ans=(w,i=0)=>{const e=w.examples[i];const m=e?[...e.t.matchAll(/\[\[(.+?)\]\]/g)].map(x=>x[1]):[];return m.length?m.join(' '):w.word};   /* 빈칸이 여러 곳(put ＿ away)이면 전부 합쳐서 정답으로 */
-/* 숙어·표현·구동사: 뒤에 동사원형(to do)이 오면 칩에 '+ do' 표시. 명사/-ing가 오는 건 표시 없음. 색은 회색 */
+/* 뒤에 동사원형(to do)이 오는 카드는 칩에 '+ do' 표시. 명사/-ing가 오는 건 표시 없음 */
 const phDo=w=>w.lang==='en'&&/동사원형|\bto V\b|\bV\b/.test((w.pattern||'').replace(/\([^)]*\)/g,''));
-const col=w=>(isPhrase(w)?null:TYPES[w.pos]?.color)||'#6b7280';
-const label=w=>(TYPES[w.pos]?.label||'기타')+(isPhrase(w)&&phDo(w)?' + do':'');
+const col=w=>TYPES[w.pos]?.color||'#6b7280';
+const label=w=>(TYPES[w.pos]?.label||'기타')+(phDo(w)?' + do':'');
+/* 예전 분류(ph_v·ph_id·ph_prep)를 품사로 변환: 구동사=타동사/자동사, 전치사로 시작하고 of 등으로 끝나면 전치사, be+…·형용사구=형용사, 관사로 시작=명사 */
+const PREPW=/^(in|on|at|by|for|with|of|to|from|out of|because of|due to|instead of|in spite of)$/i;
+function convOld(o){
+  if(!/^ph_(v|id|prep)$/.test(o.pos))return;
+  const w=(o.word||'').trim().toLowerCase(),pt=(o.pattern||'').replace(/\([^)]*\)/g,''),first=w.split(/\s+/)[0],hasObj=/^분리 가능/.test(o.sep||'')||/\+/.test(pt);
+  if(o.pos==='ph_v')o.pos=hasObj?'v_t':'v_i';
+  else if(/^(a|an|the)\s/.test(w))o.pos='n_c';
+  else if(/^be\s/i.test(o.pattern||'')&&!/^be\s/.test(w))o.pos='adj';
+  else if(PREPW.test(first)&&/\s(of|to|with|for|from|on|at|in|by)$/.test(w))o.pos=/^be\s/i.test(o.pattern||'')?'adj':'prep';
+  else if(/^(how|so|as|very|too)\s/.test(w))o.pos='adv';
+  else o.pos=(hasObj||/\s(the|a|an|one's)\s/.test(w))?'v_t':'v_i';
+}
 const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),1800)}
 const BAD_VOICE=/^(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Fred|Junior|Ralph|Kathy|Grandma|Grandpa|Samantha|Kyoko)(\s|$)/;
@@ -551,7 +561,7 @@ function usageSec(w){
   return `<div class="sec"><div class="lb">활용법</div>${u.pattern?`<div style="font-weight:700;font-size:16px">${esc(u.pattern)}</div>`:''}${u.objs?.length?`<div style="margin:8px 0">${u.objs.map(x=>`<span class="chip gray" style="margin:0 6px 6px 0">${esc(x)}</span>`).join('')}</div>`:''}${(u.notes||[]).map(n=>`<div class="note" style="margin-bottom:6px">⚠️ ${esc(n)}</div>`).join('')}${srcLine(u.src)}</div>`;
 }
 const isWeak=w=>w.lapses>=2||w.star||w.hardCount>=2;
-const isPhrase=w=>TYPES[w.pos]?.kind==='phrase';
+const isPhrase=w=>TYPES[w.pos]?.kind==='phrase'||(w.lang==='en'&&/\s/.test((w.word||'').trim()));
 const ladder=w=>`<div class="ladder">${[1,3,7,15,30].map(x=>`<span class="${w.ivl>=x?'on':''}">${x}일${x===30?'+':''}</span>`).join('<i></i>')}</div>`;
 const dkey=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const addDays=n=>{const d=new Date();d.setDate(d.getDate()+n);return dkey(d)};
@@ -794,7 +804,7 @@ function vLibrary(){
   <div class="libhd"><h1 style="margin:0;flex:1;font-size:22px;white-space:nowrap">${LANG[f.lang]} 단어장 <small class="muted" style="font-size:14px;font-weight:600">${words.filter(w=>w.lang===f.lang).length}</small></h1>
     <button class="ibtn ${f.q?'on':''}" id="stog" aria-label="검색"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button>
     <label class="ibtn ${f.pos!=='all'?'on':''}" aria-label="분류"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16l-6 7.5V19l-4-2v-4.5z"/></svg>
-      <select id="psel" style="position:absolute;inset:0;opacity:0;width:100%;height:100%;padding:0;border:0"><option value="all">전체</option><option value="k:word" ${f.pos==='k:word'?'selected':''}>단어만</option><option value="k:phrase" ${f.pos==='k:phrase'?'selected':''}>표현(구·숙어)만</option>${typesOf(f.lang).map(([k,t])=>`<option value="${k}" ${f.pos===k?'selected':''}>${t.label}</option>`).join('')}</select></label>
+      <select id="psel" style="position:absolute;inset:0;opacity:0;width:100%;height:100%;padding:0;border:0"><option value="all">전체</option><option value="k:word" ${f.pos==='k:word'?'selected':''}>단어만</option><option value="k:phrase" ${f.pos==='k:phrase'?'selected':''}>관용어구만</option>${typesOf(f.lang).map(([k,t])=>`<option value="${k}" ${f.pos===k?'selected':''}>${t.label}</option>`).join('')}</select></label>
     <label class="ibtn ${f.sort?'on':''}" aria-label="정렬"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5v14M4.5 15.5L8 19l3.5-3.5M16 19V5M12.5 8.5L16 5l3.5 3.5"/></svg>
       <select id="ssel" style="position:absolute;inset:0;opacity:0;width:100%;height:100%;padding:0;border:0"><option value="" disabled hidden ${f.sort?'':'selected'}>정렬</option>${SORTS.map(([k,n])=>`<option value="${k}" ${f.sort===k?'selected':''}>${n}</option>`).join('')}</select></label>
     <button class="ibtn ${f.view&&f.view!=='all'?'on':''}" id="vtog" aria-label="보기 방식" style="font-weight:800;font-size:14px;letter-spacing:-.5px">${f.view==='en'?(f.lang==='ja'?'あ':'A'):f.view==='ko'?'가':'A가'}</button><button class="ibtn" id="dpb" aria-label="심화학습 (${DEEP_AT}번 이상 틀리거나 애매했던 단어)">${FIRE}${deepList(f.lang).length?`<span class="bdg">${deepList(f.lang).length}</span>`:''}</button></div>
@@ -1009,6 +1019,7 @@ function parseImport(txt){
   const data=parseJSONLoose(txt);
   const arr=Array.isArray(data)?data:[data];
   return arr.map((o,i)=>{
+    convOld(o);
     if(!o.word||!o.meaning||!o.pos)throw new Error(`${i+1}번째 항목에 word / meaning / pos 가 없어요`);
     const lang=o.lang==='ja'?'ja':'en';
     if(!TYPES[o.pos]||TYPES[o.pos].lang!==lang)throw new Error(`${i+1}번째 항목: ${LANG[lang]}에서 쓸 수 없는 pos "${o.pos}" 예요 (${typesOf(lang).map(([k])=>k).join(', ')})`);
