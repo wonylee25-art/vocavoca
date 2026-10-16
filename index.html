@@ -452,6 +452,7 @@ const ans=(w,i=0)=>{const e=w.examples[i];const m=e?[...e.t.matchAll(/\[\[(.+?)\
 /* 뒤에 동사원형(to do)이 오는 카드는 칩에 '+ do' 표시. 명사/-ing가 오는 건 표시 없음 */
 const phDo=w=>w.lang==='en'&&/동사원형|\bto V\b|\bV\b/.test((w.pattern||'').replace(/\([^)]*\)/g,''));
 const col=w=>TYPES[w.pos]?.color||'#6b7280';
+const dw=w=>w.word+(phDo(w)&&/\sto$/i.test(w.word.trim())?' do':'');   /* 'be certain to' → 'be certain to do' (표시만 바꿈) */
 const label=w=>(TYPES[w.pos]?.label||'기타')+(phDo(w)?' + do':'');
 /* 예전 분류(ph_v·ph_id·ph_prep)를 품사로 변환: 구동사=타동사/자동사, 전치사로 시작하고 of 등으로 끝나면 전치사, be+…·형용사구=형용사, 관사로 시작=명사 */
 const PREPW=/^(in|on|at|by|for|with|of|to|from|out of|because of|due to|instead of|in spite of)$/i;
@@ -694,7 +695,7 @@ function vStats(){
   <h2>외운 것 · 외울 것</h2>
   ${lang('en')}${lang('ja')}
   <div class="muted" style="font-size:12.5px">새 단어 → 익히는 중(복습 간격 1~6일) → 익숙함(7~29일) → 외움(30일 이상). 한 달 넘게 간격을 벌려도 맞히면 '외움'이에요.</div>
-  ${overcame.length?`<h2>예전엔 자꾸 틀렸는데 🎯</h2><div class="list">${overcame.map(w=>`<button class="w" data-id="${w.id}" style="--c:${col(w)}"><div><span class="t">${esc(w.word)}</span><div class="m">${esc(w.meaning)}</div></div><div class="side"><span class="muted" style="font-size:12px">${w.lapses}번 틀림 → 지금 ${w.ivl}일 간격</span></div></button>`).join('')}</div>`:''}`;
+  ${overcame.length?`<h2>예전엔 자꾸 틀렸는데 🎯</h2><div class="list">${overcame.map(w=>`<button class="w" data-id="${w.id}" style="--c:${col(w)}"><div><span class="t">${esc(dw(w))}</span><div class="m">${esc(w.meaning)}</div></div><div class="side"><span class="muted" style="font-size:12px">${w.lapses}번 틀림 → 지금 ${w.ivl}일 간격</span></div></button>`).join('')}</div>`:''}`;
   document.querySelectorAll('.w').forEach(b=>b.onclick=()=>openSheet(+b.dataset.id,[...document.querySelectorAll('.w')].map(x=>+x.dataset.id),'stats'));
   bindExam();
 }
@@ -824,7 +825,7 @@ function vLibrary(){
       f.si=Math.min(f.si||0,L.length-1);const w=L[f.si],ex=w.examples[0],st=Math.min(f.st||0,1);
       const must=[w.note,...(w.deep?.usage?.notes||[]).slice(0,1)].filter(Boolean);
       $('#lst').innerHTML=`<div class="card skc" id="sk" role="button" tabindex="0" style="margin-top:12px;--c:${col(w)};height:400px;overflow-y:auto;cursor:pointer;user-select:none">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><div class="qword" style="min-width:0;overflow-wrap:anywhere">${esc(w.word)}</div><button class="ibtn" id="skp" aria-label="발음 듣기" style="margin-right:8px;flex:none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4zM15.5 8.5a5 5 0 010 7M18.5 5.5a9 9 0 010 13"/></svg></button></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><div class="qword" style="min-width:0;overflow-wrap:anywhere">${esc(dw(w))}</div><button class="ibtn" id="skp" aria-label="발음 듣기" style="margin-right:8px;flex:none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4zM15.5 8.5a5 5 0 010 7M18.5 5.5a9 9 0 010 13"/></svg></button></div>
         ${ex?`<div class="ex" style="margin-top:14px;--c:${col(w)}"><div style="display:flex;align-items:flex-start;gap:8px"><div style="flex:1;min-width:0"><p style="font-size:20px">${st===0?blank(ex.t):hl(ex.t)}</p>${st===1&&ex.tr?`<p class="muted" style="margin-top:4px;font-size:16px">${hl(ex.tr)}</p>`:''}</div><button class="ibtn" id="skx" aria-label="예문 듣기" style="margin:-6px -4px 0 0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4zM15.5 8.5a5 5 0 010 7M18.5 5.5a9 9 0 010 13"/></svg></button></div></div>`:''}
         ${st===1?`<div style="margin-top:12px;font-size:20px;font-weight:800">${esc(w.meaning)}</div>`:''}
         ${st===1?must.map(x=>`<div style="margin-top:10px;font-weight:700;font-size:16px">❗ ${esc(x)}</div>`).join(''):''}
@@ -842,7 +843,7 @@ function vLibrary(){
       return;
     }
     $('#lst').innerHTML=L.length?L.map(w=>`<button class="w" data-id="${w.id}" style="--c:${col(w)}">
-      <div class="line">${f.view==='ko'?'':`<span class="t">${esc(w.word)}</span>`}${f.view==='en'?'':`<span class="m" ${f.view==='ko'?'style="font-size:19px;font-weight:700"':''}>${esc(w.meaning)}</span>`}</div>
+      <div class="line">${f.view==='ko'?'':`<span class="t">${esc(dw(w))}</span>`}${f.view==='en'?'':`<span class="m" ${f.view==='ko'?'style="font-size:19px;font-weight:700"':''}>${esc(w.meaning)}</span>`}</div>
       <div class="side">${chipOf(w)}${w.incomplete?'<span class="hot" style="color:var(--ink)">🧩 보강 필요</span>':isWeak(w)?'<span class="hot">🔥 취약</span>':''}</div></button>`).join(''):'<div class="empty">조건에 맞는 단어가 없어요</div>';
     document.querySelectorAll('.w').forEach(b=>b.onclick=()=>openSheet(+b.dataset.id,L.map(w=>w.id),'library'));
   };
@@ -939,7 +940,7 @@ function vCard(){
   $('#view').innerHTML=`<div style="--c:${col(w)}">
     <div class="cbar"><button class="ibtn" id="cb" aria-label="목록" style="width:auto;padding:0 14px;font-weight:700">‹ 목록</button><span class="muted" style="flex:1;text-align:center">${k+1} / ${a.length}</span>${nb(-1,'‹')}${nb(1,'›')}</div>
     <div style="display:flex;align-items:center;gap:10px;margin-top:6px">
-      <div style="flex:1;min-width:0"><div class="big" style="font-size:clamp(24px,8vw,38px);overflow-wrap:anywhere">${esc(w.word)}</div>${w.reading?`<div class="rd" style="font-size:14px">${esc(w.reading)}</div>`:''}</div>
+      <div style="flex:1;min-width:0"><div class="big" style="font-size:clamp(24px,8vw,38px);overflow-wrap:anywhere">${esc(dw(w))}</div>${w.reading?`<div class="rd" style="font-size:14px">${esc(w.reading)}</div>`:''}</div>
       <button class="ibtn ${w.star?'on':''}" id="star" aria-label="어려운 단어 표시">${STAR.replace('FILL',w.star?'currentColor':'none')}</button>
       <button class="ibtn" id="pl" aria-label="발음 듣기"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg></button></div>
     <div style="font-size:20px;font-weight:700;margin-top:12px">${esc(w.meaning)} ${chipOf(w)}</div>
@@ -1140,7 +1141,10 @@ function pickMode(){
     sess.correct=ans(w,sess.exi);
     /* 절반은 '품사·활용형이 전부 같은' 보기 → 문법으론 못 가리고 뜻·쓰임으로 골라야 함 (보기가 모자라면 위의 일반 방식) */
     const same=Math.random()<.5&&sameForm(w,sess.correct);
-    sess.opts=same||mk(sess.correct,x=>ans(x,0),'form')}
+    const o=same||mk(sess.correct,x=>ans(x,0),'form');
+    /* 문장 첫머리 단어만 대문자라 정답이 티 나지 않게, 보기 첫 글자의 대소문자를 정답에 맞춘다 */
+    const up=/^[A-Z][a-z]/.test(sess.correct),fix=t=>t===sess.correct||!/^[A-Za-z][a-z]/.test(t)?t:(up?t[0].toUpperCase():t[0].toLowerCase())+t.slice(1);
+    sess.opts=o.map(fix)}
   sess.state='ask';sess.picked=null;sess.right=null;sess.mineText='';
 }
 function nextIvl(w,conf){
@@ -1155,7 +1159,7 @@ const targets=(w,mode)=>mode==='listen'?[w.word]:mode==='cloze'?[ans(w,sess.exi)
 function partText(w){const p=w.word.split(' '),k=p.map(x=>x.toLowerCase()).lastIndexOf(w.core.toLowerCase());if(k>=0)p[k]='＿＿＿';return p.join(' ')}
 function reveal(w){
   const ex=w.examples[sess.exi]||w.examples[0];
-  return `<div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:8px"><span style="color:${col(w)};font-weight:800;font-size:22px">${esc(w.word)}</span><button class="ibtn" data-say="w" aria-label="단어 듣기" style="margin-right:3px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg></button></div><div>
+  return `<div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:8px"><span style="color:${col(w)};font-weight:800;font-size:22px">${esc(dw(w))}</span><button class="ibtn" data-say="w" aria-label="단어 듣기" style="margin-right:3px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg></button></div><div>
     ${['listen','flip'].includes(sess.mode)?`<div style="margin-top:4px;font-weight:600">${esc(w.meaning)}</div>`:''}
     ${ex?`<div class="ex" style="margin-top:8px;--c:${col(w)};display:flex;align-items:center;gap:8px"><div style="flex:1;min-width:0"><p>${hl(ex.t)}</p><p class="tr">${hl(ex.tr||'')}</p></div><button class="ibtn" data-say="s" aria-label="예문 듣기" style="margin-right:-9px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg></button></div>`:''}
     ${(w.extra||[]).map(x=>`<div class="muted" style="margin-top:4px">💡 ${esc(x)}</div>`).join('')}
@@ -1168,7 +1172,7 @@ function vReview(){
   if(sess.i>=sess.queue.length){
     const weak=[...sess.miss].map(id=>words.find(w=>w.id===id)).filter(Boolean);
     v.innerHTML=`<h1>테스트 완료 🎉</h1><div class="card" style="margin-top:14px;text-align:center"><div class="logo" style="font-size:52px">${Math.round(sess.ok/sess.total*100)}%</div><div class="muted">처음 시도에 맞힌 비율 (${sess.ok}/${sess.total})</div></div>
-    ${weak.length?`<h2>다시 보면 좋은 단어</h2><div class="list">${weak.map(w=>`<button class="w" data-id="${w.id}" style="--c:${col(w)}"><div><span class="t">${esc(w.word)}</span><div class="m">${esc(w.meaning)}</div></div><div class="side">${chipOf(w)}</div></button>`).join('')}</div>`:''}
+    ${weak.length?`<h2>다시 보면 좋은 단어</h2><div class="list">${weak.map(w=>`<button class="w" data-id="${w.id}" style="--c:${col(w)}"><div><span class="t">${esc(dw(w))}</span><div class="m">${esc(w.meaning)}</div></div><div class="side">${chipOf(w)}</div></button>`).join('')}</div>`:''}
     <div class="row" style="margin-top:20px"><button class="btn ghost" style="flex:1" id="st">내 성장 보기</button><button class="btn" style="flex:1" id="hm">한 번 더</button></div>`;
     document.querySelectorAll('.w').forEach(b=>b.onclick=()=>openSheet(+b.dataset.id,weak.map(w=>w.id),'review'));
     $('#hm').onclick=()=>{sess=null;go('home')};$('#st').onclick=()=>{sess=null;go('stats')};return;
@@ -1182,7 +1186,7 @@ function vReview(){
   const input=ph=>sess.opts&&sess.correct!=null?opts(sess.correct):input0(ph);
   const sentence=`<div class="sent">${blank(ex.t)}</div>`;
   let body='';
-  if(mode==='choice')body=`<div class="qword">${esc(w.word)}</div>${rd}${opts(w.meaning)}`;
+  if(mode==='choice')body=`<div class="qword">${esc(dw(w))}</div>${rd}${opts(w.meaning)}`;
   else if(mode==='cloze_c')body=sentence+opts(ans(w,sess.exi));
   else if(mode==='cloze')body=sentence+input('빈칸에 들어갈 말 (활용형 그대로)');
   else if(mode==='listen')body=`<div style="text-align:center"><button class="ibtn" style="width:80px;height:80px" id="pl"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg></button><div class="muted" style="margin-top:8px">▶를 눌러 들은 단어를 쓰세요</div></div>${input('스펠링')}`;
@@ -1193,10 +1197,10 @@ function vReview(){
   }
   else if(mode==='rev')body=`<div style="font-size:26px;font-weight:800">${esc(w.meaning)}</div><div class="muted" style="margin-top:6px">${isPhrase(w)?'알맞은 표현을':'알맞은 단어를'} 고르세요</div>${opts(w.word)}`;
   else if(mode==='part')body=`<div class="qword" style="font-size:28px">${esc(partText(w))}</div><div style="margin-top:6px;font-weight:700">${esc(w.meaning)}</div><div class="muted">빈칸에 들어갈 말을 고르세요</div>${opts(w.core.toLowerCase())}`;
-  else if(mode==='produce')body=`<div class="qword">${esc(w.word)}</div>${rd}<div style="font-size:18px;font-weight:700;margin-top:8px">${esc(w.meaning)}</div>
+  else if(mode==='produce')body=`<div class="qword">${esc(dw(w))}</div>${rd}<div style="font-size:18px;font-weight:700;margin-top:8px">${esc(w.meaning)}</div>
     <div class="muted" style="margin:10px 0 8px">이 단어를 넣어 <b>나만의 문장</b>을 써 보세요. 내 이야기일수록 오래 기억돼요.</div>
     <textarea id="ta" style="min-height:90px;font-family:inherit;font-size:16px" ${dis}>${esc(sess.mineText)}</textarea><div class="row"><button class="btn" id="sb" ${dis}>제출</button></div>`;
-  else body=`<div class="qword">${esc(w.word)}</div>${rd}${fb?'':`<div class="muted" style="margin-top:14px">뜻과 쓰임을 머릿속으로 먼저 떠올린 뒤 확인하세요.</div><button class="btn block" style="margin-top:16px" id="rv">정답 보기</button>`}`;
+  else body=`<div class="qword">${esc(dw(w))}</div>${rd}${fb?'':`<div class="muted" style="margin-top:14px">뜻과 쓰임을 머릿속으로 먼저 떠올린 뒤 확인하세요.</div><button class="btn block" style="margin-top:16px" id="rv">정답 보기</button>`}`;
   const R=(id,label)=>`<button class="rate ${id}" id="${id}"><b>${label}</b></button>`;
   let out='';
   if(fb&&mode==='flip'){
